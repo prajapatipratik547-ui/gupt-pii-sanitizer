@@ -95,8 +95,16 @@ This is the record of how Gupt was built with AI assistance: each prompt, what i
 **Repository:**
 
 - The README now opens with the live demo, badges, screenshots and a 60-second walkthrough for judges, and every number in it was re-measured.
-- Added `SECURITY.md` and a Dependabot configuration.
+- Added `SECURITY.md`.
 - The app footer links to the source, the prompt log and the security policy.
+
+---
+
+### Mistake caught right after pushing
+
+The AI had added a Dependabot configuration. On its first run Dependabot opened 5 pull requests, each on its own branch. That would have broken the hackathon rule that the repository must have **only one branch**.
+
+The config was removed, the 5 PRs were closed and their branches deleted, and the AI confirmed that `main` is the only branch left. Dependency health is still checked by `npm audit` (0 vulnerabilities).
 
 ---
 

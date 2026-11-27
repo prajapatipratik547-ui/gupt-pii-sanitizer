@@ -97,7 +97,7 @@ Every pattern starts with a negative look-behind, so it can only begin at a toke
 
 ## Security model
 
-See [`SECURITY.md`](SECURITY.md) for the full policy and how to verify each guarantee yourself. Dependabot checks npm and GitHub Actions dependencies weekly.
+See [`SECURITY.md`](SECURITY.md) for the full policy and how to verify each guarantee yourself.
 
 | Threat | Mitigation |
 | --- | --- |
