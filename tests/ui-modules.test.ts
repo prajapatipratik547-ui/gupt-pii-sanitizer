@@ -2,7 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { analyze, type AnalyzeRequest } from '../src/core/pipeline';
 import { Analyzer } from '../src/ui/analyzer';
+import { parseTerms } from '../src/ui/app';
 import { bindDiffInteractions } from '../src/ui/diff';
+import { bindFileInputs } from '../src/ui/files';
 import { watchNetwork } from '../src/ui/privacy';
 import { applyTheme, nextTheme } from '../src/ui/theme';
 import { ALL_TYPES } from './helpers';
@@ -226,5 +228,48 @@ describe('theme', () => {
     expect(btn.getAttribute('aria-label')).toContain('dark');
     applyTheme('system', btn);
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+  });
+});
+
+describe('file inputs', () => {
+  function setup() {
+    const picker = document.createElement('input');
+    const zone = document.createElement('div');
+    const onFile = vi.fn();
+    bindFileInputs(picker, zone, onFile);
+    return { picker, zone, onFile };
+  }
+  const dragEvent = (type: string, files: File[] = []) => Object.assign(new Event(type, { cancelable: true }), { dataTransfer: { files } });
+
+  it('keeps the drop highlight while dragging over children, and hands over the dropped file', () => {
+    const { zone, onFile } = setup();
+    zone.dispatchEvent(dragEvent('dragenter'));
+    zone.dispatchEvent(dragEvent('dragenter')); // entered a child element
+    zone.dispatchEvent(dragEvent('dragleave'));
+    expect(zone.classList.contains('is-dragging')).toBe(true);
+    zone.dispatchEvent(dragEvent('dragleave'));
+    expect(zone.classList.contains('is-dragging')).toBe(false);
+
+    const file = new File(['a@b.co'], 'notes.txt');
+    const drop = dragEvent('drop', [file]);
+    zone.dispatchEvent(drop);
+    expect(drop.defaultPrevented).toBe(true);
+    expect(onFile).toHaveBeenCalledWith(file);
+  });
+
+  it('hands over a picked file and resets the picker', () => {
+    const { picker, onFile } = setup();
+    const file = new File(['x'], 'data.csv');
+    Object.defineProperty(picker, 'files', { value: [file], configurable: true });
+    picker.dispatchEvent(new Event('change'));
+    expect(onFile).toHaveBeenCalledWith(file);
+    expect(picker.value).toBe('');
+  });
+});
+
+describe('always-redact terms', () => {
+  it('takes one trimmed term per line and skips blanks', () => {
+    expect(parseTerms('  Project Falcon \n\n  ACME-42\n   ')).toEqual(['Project Falcon', 'ACME-42']);
+    expect(parseTerms('')).toEqual([]);
   });
 });

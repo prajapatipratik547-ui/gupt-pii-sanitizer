@@ -5,10 +5,11 @@ import { sanitizedFileName } from '../core/report';
 import { DEFAULT_SAMPLE_ID, SAMPLES, getSample } from '../core/samples';
 import { Analyzer } from './analyzer';
 import { bindDiffInteractions } from './diff';
-import { byId, debounce, formatBytes, h, plural } from './dom';
+import { debounce, formatBytes, h, plural } from './dom';
+import { queryElements } from './elements';
 import { createActivityLog, createToaster } from './feedback';
 import { bindExports } from './exports';
-import { readTextFile } from './files';
+import { bindFileInputs, readTextFile } from './files';
 import { watchNetwork } from './privacy';
 import {
   renderChips,
@@ -41,58 +42,18 @@ export interface AppHandle {
 }
 
 const TYPING_DEBOUNCE_MS = 160;
+const TERMS_DEBOUNCE_MS = 300;
+
+/** The always-redact box holds one term per line; blank lines are ignored. */
+export function parseTerms(value: string): string[] {
+  return value
+    .split('\n')
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
 
 export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
-  const el = {
-    input: byId<HTMLTextAreaElement>('input'),
-    inputMeta: byId('input-meta'),
-    dropzone: byId('dropzone'),
-    fileInput: byId<HTMLInputElement>('file-input'),
-    sampleSelect: byId<HTMLSelectElement>('sample-select'),
-    loadSample: byId<HTMLButtonElement>('load-sample'),
-    clear: byId<HTMLButtonElement>('clear'),
-    typeLabels: byId<HTMLInputElement>('type-labels'),
-    strict: byId<HTMLInputElement>('strict'),
-    customTerms: byId<HTMLTextAreaElement>('custom-terms'),
-    coreList: byId('types-core-list'),
-    extendedList: byId('types-extended-list'),
-    typesAll: byId<HTMLButtonElement>('types-all'),
-    typesCore: byId<HTMLButtonElement>('types-core'),
-    typesEnabled: byId('types-enabled'),
-    typesDetails: byId<HTMLDetailsElement>('types-details'),
-    statTotal: byId('stat-total'),
-    statUnique: byId('stat-unique'),
-    statRejected: byId('stat-rejected'),
-    statKept: byId('stat-kept'),
-    timing: byId('timing'),
-    chips: byId('chips'),
-    diff: byId('diff'),
-    paneOriginal: byId('pane-original'),
-    paneOutput: byId('pane-output'),
-    modeBadge: byId('mode-badge'),
-    previewNote: byId('preview-note'),
-    syncScroll: byId<HTMLInputElement>('sync-scroll'),
-    showTags: byId<HTMLInputElement>('show-tags'),
-    download: byId<HTMLButtonElement>('download'),
-    downloadLabel: byId('download-label'),
-    copy: byId<HTMLButtonElement>('copy'),
-    report: byId<HTMLButtonElement>('download-report'),
-    key: byId<HTMLButtonElement>('download-key'),
-    findingsBody: byId('findings-body'),
-    findingsFilter: byId<HTMLSelectElement>('findings-filter'),
-    findingsNote: byId('findings-note'),
-    rejectedSummary: byId('rejected-summary'),
-    rejectedList: byId('rejected-list'),
-    restoreInput: byId<HTMLTextAreaElement>('restore-input'),
-    restoreRun: byId<HTMLButtonElement>('restore-run'),
-    restoreStatus: byId('restore-status'),
-    restoreOutput: byId('restore-output'),
-    activity: byId('activity'),
-    toast: byId('toast'),
-    themeToggle: byId<HTMLButtonElement>('theme-toggle'),
-    netCount: byId('net-count'),
-    privacyPill: byId('privacy-pill'),
-  };
+  const el = queryElements();
 
   const state: State = {
     text: '',
@@ -280,30 +241,7 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
     analyzeSoon();
   });
 
-  el.fileInput.addEventListener('change', () => {
-    const file = el.fileInput.files?.[0];
-    if (file) void loadFile(file);
-    el.fileInput.value = ''; // allow re-selecting the same file
-  });
-
-  let dragDepth = 0;
-  el.dropzone.addEventListener('dragenter', (e) => {
-    e.preventDefault();
-    dragDepth++;
-    el.dropzone.classList.add('is-dragging');
-  });
-  el.dropzone.addEventListener('dragover', (e) => e.preventDefault());
-  el.dropzone.addEventListener('dragleave', () => {
-    dragDepth = Math.max(0, dragDepth - 1);
-    if (dragDepth === 0) el.dropzone.classList.remove('is-dragging');
-  });
-  el.dropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dragDepth = 0;
-    el.dropzone.classList.remove('is-dragging');
-    const file = e.dataTransfer?.files[0];
-    if (file) void loadFile(file);
-  });
+  bindFileInputs(el.fileInput, el.dropzone, (file) => void loadFile(file));
 
   el.clear.addEventListener('click', () => {
     void loadText('', null);
@@ -359,13 +297,10 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
   el.typesCore.addEventListener('click', () => setEnabled(CORE_TYPES, 'Core entity types only'));
 
   const onTermsChange = debounce(() => {
-    state.settings.customTerms = el.customTerms.value
-      .split('\n')
-      .map((t) => t.trim())
-      .filter(Boolean);
+    state.settings.customTerms = parseTerms(el.customTerms.value);
     persist();
     void analyzeNow();
-  }, 300);
+  }, TERMS_DEBOUNCE_MS);
   el.customTerms.addEventListener('input', onTermsChange);
 
   el.syncScroll.addEventListener('change', () => {

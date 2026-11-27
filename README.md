@@ -1,7 +1,7 @@
 # Gupt (गुप्त): private PII sanitizer
 
 [![CI & Pages](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml/badge.svg)](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-231%20unit%20%2B%2041%20e2e-brightgreen)
+![Tests](https://img.shields.io/badge/tests-234%20unit%20%2B%2041%20e2e-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-97%25%20lines-brightgreen)
 ![Lighthouse](https://img.shields.io/badge/Lighthouse-100%20·%20100%20·%20100-brightgreen)
 ![Runtime dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)
@@ -124,7 +124,7 @@ See [`SECURITY.md`](SECURITY.md) for the full policy and how to verify each guar
 ## Testing
 
 ```bash
-npm test            # 231 unit + integration tests (Vitest, node + jsdom, axe-core, ReDoS guard)
+npm test            # 234 unit + integration tests (Vitest, node + jsdom, axe-core, ReDoS guard)
 npm run coverage    # whole app: ~97% lines, ~95% statements, ~89% branches (thresholds enforced)
 npm run check       # typecheck + lint + format check + test + build
 npm run e2e         # 41 end-to-end checks in real headless Chrome (needs `npm run preview -- --port 4317`)
@@ -209,7 +209,7 @@ src/
     pipeline.ts         analyze(): detect + redact + counts + timing
     report.ts           PII-free audit report, key file, file names
     samples.ts          6 synthetic noisy samples
-  ui/                   DOM layer (no framework): app, render, diff, exports, privacy monitor, theme
+  ui/                   DOM layer (no framework): app, elements, files, render, diff, exports, privacy monitor, theme
   worker.ts             Web Worker entry
 tests/                  Vitest (node + jsdom), axe-core
 scripts/e2e.mjs         end-to-end checks in headless Chrome over the DevTools protocol

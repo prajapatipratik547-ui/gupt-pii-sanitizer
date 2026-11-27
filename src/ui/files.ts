@@ -46,3 +46,34 @@ export function downloadText(fileName: string, text: string, mime: string): void
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+/**
+ * Route files from the picker and from drag-and-drop to one handler.
+ * A depth counter keeps the drop highlight steady while dragging over child elements.
+ */
+export function bindFileInputs(picker: HTMLInputElement, dropzone: HTMLElement, onFile: (file: File) => void): void {
+  picker.addEventListener('change', () => {
+    const file = picker.files?.[0];
+    if (file) onFile(file);
+    picker.value = ''; // allow re-selecting the same file
+  });
+
+  let dragDepth = 0;
+  dropzone.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    dragDepth++;
+    dropzone.classList.add('is-dragging');
+  });
+  dropzone.addEventListener('dragover', (e) => e.preventDefault());
+  dropzone.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) dropzone.classList.remove('is-dragging');
+  });
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragDepth = 0;
+    dropzone.classList.remove('is-dragging');
+    const file = e.dataTransfer?.files[0];
+    if (file) onFile(file);
+  });
+}
