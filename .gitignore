@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+*.log
+!tests/fixtures/*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.env*
