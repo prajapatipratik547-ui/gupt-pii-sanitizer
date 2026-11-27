@@ -155,7 +155,7 @@ describe('redaction controls', () => {
     await settle();
     expect($('#pane-output').textContent).toContain('priya.sharma@example.com');
     expect(JSON.parse(localStorage.getItem('gupt.settings.v1') ?? '{}').enabled).not.toContain('EMAIL');
-    expect($('#types-enabled').textContent).toBe('(15 of 16)');
+    expect($('#types-enabled').textContent).toBe('(16 of 17)');
   });
 
   it('keeps a value everywhere when its highlight is clicked, and redacts it again on a second click', async () => {

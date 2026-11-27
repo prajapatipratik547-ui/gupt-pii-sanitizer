@@ -20,6 +20,11 @@ export default tseslint.config(
     },
   },
   {
+    // The e2e runner reports progress on stdout.
+    files: ['scripts/**/*.mjs'],
+    rules: { 'no-console': ['warn', { allow: ['info', 'warn', 'error'] }] },
+  },
+  {
     // innerHTML is banned in app code: every piece of user text goes through textContent.
     files: ['src/**/*.ts'],
     rules: {

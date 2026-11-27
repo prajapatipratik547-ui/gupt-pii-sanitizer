@@ -12,8 +12,11 @@ export function normalizeValue(type: EntityType, value: string): string {
   const v = value.trim();
   switch (type) {
     case 'EMAIL':
+      return v.toLowerCase().replace(/%40/g, '@');
     case 'UPI':
       return v.toLowerCase();
+    case 'PROFILE_URL':
+      return v.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/@/, '/');
     case 'PHONE': {
       const digits = v.replace(/\D/g, '');
       // Indian numbers: drop +91 / 0091 / 0 trunk prefix so every spelling collapses to 10 digits.

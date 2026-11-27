@@ -1,13 +1,18 @@
 import { CORE_TYPES, ENTITY_INFO, EXTENDED_TYPES, type EntityType, isEntityType } from '../core/entities';
 import type { AnalysisResult, AnalyzeRequest } from '../core/pipeline';
-import { MODE_LABELS, type RedactionMode, reidentify } from '../core/redact';
-import { buildAuditReport, buildKeyFile, mimeFor, sanitizedFileName } from '../core/report';
+import { MODE_LABELS, type RedactionMode } from '../core/redact';
+import { sanitizedFileName } from '../core/report';
 import { DEFAULT_SAMPLE_ID, SAMPLES, getSample } from '../core/samples';
 import { Analyzer } from './analyzer';
+import { bindDiffInteractions } from './diff';
 import { byId, debounce, formatBytes, h, plural } from './dom';
-import { downloadText, readTextFile } from './files';
+import { createActivityLog, createToaster } from './feedback';
+import { bindExports } from './exports';
+import { readTextFile } from './files';
+import { watchNetwork } from './privacy';
 import { renderChips, renderFindings, renderPanes, renderRejected, renderTypeToggles, updateTypeCounts, PREVIEW_LIMIT, TABLE_LIMIT } from './render';
-import { type Settings, type Theme, loadSettings, saveSettings } from './settings';
+import { type Settings, loadSettings, saveSettings } from './settings';
+import { applyTheme, nextTheme } from './theme';
 
 interface State {
   text: string;
@@ -93,22 +98,8 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
   let lastRun: Promise<void> = Promise.resolve();
 
   // ---------------------------------------------------------------- helpers
-  let toastTimer: ReturnType<typeof setTimeout> | undefined;
-  function toast(message: string): void {
-    el.toast.textContent = message;
-    el.toast.classList.add('is-visible');
-    if (toastTimer !== undefined) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.toast.classList.remove('is-visible'), 2800);
-  }
-
-  function log(message: string): void {
-    const now = new Date();
-    el.activity.querySelector('.activity-empty')?.remove();
-    el.activity.prepend(
-      h('li', {}, h('time', { datetime: now.toISOString(), text: now.toLocaleTimeString('en-GB') }), h('span', { text: message })),
-    );
-    while (el.activity.children.length > 60) el.activity.lastElementChild?.remove();
-  }
+  const toast = createToaster(el.toast);
+  const log = createActivityLog(el.activity);
 
   function persist(): void {
     saveSettings(state.settings);
@@ -219,20 +210,13 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
       box.checked = s.enabled.includes(box.value as EntityType);
     }
     updateEnabledSummary();
-    applyTheme(s.theme);
+    applyTheme(s.theme, el.themeToggle);
   }
 
   function updateEnabledSummary(): void {
     const total = CORE_TYPES.length + EXTENDED_TYPES.length - 1; // CUSTOM is driven by the term list
     const on = state.settings.enabled.filter((t) => t !== 'CUSTOM').length;
     el.typesEnabled.textContent = `(${on} of ${total})`;
-  }
-
-  function applyTheme(theme: Theme): void {
-    if (theme === 'system') document.documentElement.removeAttribute('data-theme');
-    else document.documentElement.setAttribute('data-theme', theme);
-    el.themeToggle.setAttribute('aria-label', `Colour theme: ${theme}. Activate to change.`);
-    el.themeToggle.title = `Theme: ${theme}`;
   }
 
   // ------------------------------------------------------------ input flows
@@ -376,39 +360,18 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
   });
 
   el.themeToggle.addEventListener('click', () => {
-    const order: Theme[] = ['system', 'light', 'dark'];
-    state.settings.theme = order[(order.indexOf(state.settings.theme) + 1) % order.length] as Theme;
-    applyTheme(state.settings.theme);
+    state.settings.theme = nextTheme(state.settings.theme);
+    applyTheme(state.settings.theme, el.themeToggle);
     persist();
   });
 
   // ------------------------------------------------------------- diff panes
-  let syncing = false;
-  function syncScroll(from: HTMLElement, to: HTMLElement): void {
-    if (!state.settings.syncScroll || syncing) return;
-    syncing = true;
-    const ratio = from.scrollTop / Math.max(1, from.scrollHeight - from.clientHeight);
-    to.scrollTop = ratio * (to.scrollHeight - to.clientHeight);
-    requestAnimationFrame(() => {
-      syncing = false;
-    });
-  }
-  el.paneOriginal.addEventListener('scroll', () => syncScroll(el.paneOriginal, el.paneOutput), { passive: true });
-  el.paneOutput.addEventListener('scroll', () => syncScroll(el.paneOutput, el.paneOriginal), { passive: true });
-
-  let hovered: string | null = null;
-  function setHover(id: string | null): void {
-    if (hovered === id) return;
-    for (const m of el.diff.querySelectorAll('.pii.is-hover')) m.classList.remove('is-hover');
-    hovered = id;
-    if (id === null) return;
-    for (const m of el.diff.querySelectorAll(`.pii[data-eid="${id}"]`)) m.classList.add('is-hover');
-  }
-  el.diff.addEventListener('mouseover', (e) => {
-    const mark = (e.target as Element).closest<HTMLElement>('.pii[data-eid]');
-    setHover(mark?.dataset.eid ?? null);
+  bindDiffInteractions({
+    container: el.diff,
+    original: el.paneOriginal,
+    output: el.paneOutput,
+    syncEnabled: () => state.settings.syncScroll,
   });
-  el.diff.addEventListener('mouseleave', () => setHover(null));
 
   function toggleKeep(key: string): void {
     const entity = state.result?.entities.find((e) => e.key === key);
@@ -444,109 +407,33 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
   });
 
   // ----------------------------------------------------------------- export
-  el.download.addEventListener('click', () => {
-    const r = state.result;
-    if (!r || !state.text) return;
-    const name = sanitizedFileName(state.fileName);
-    downloadText(name, r.output, mimeFor(name));
-    toast(`Saved ${name}`);
-    log(`Downloaded ${name} — ${plural(r.total, 'value')} redacted (${MODE_LABELS[state.settings.mode]})`);
-  });
-
-  el.copy.addEventListener('click', async () => {
-    const r = state.result;
-    if (!r) return;
-    try {
-      await navigator.clipboard.writeText(r.output);
-      toast('Sanitized text copied');
-      log('Copied sanitized text to clipboard');
-    } catch {
-      el.paneOutput.focus();
-      const range = document.createRange();
-      range.selectNodeContents(el.paneOutput);
-      getSelection()?.removeAllRanges();
-      getSelection()?.addRange(range);
-      toast('Clipboard blocked — the output is selected, press Ctrl+C');
-    }
-  });
-
-  el.report.addEventListener('click', () => {
-    const r = state.result;
-    if (!r) return;
-    const report = buildAuditReport(r, { fileName: state.fileName, mode: state.settings.mode, strict: state.settings.strict, generatedAt: new Date() });
-    const name = `${sanitizedFileName(state.fileName).replace(/\.[^.]+$/, '')}.audit.json`;
-    downloadText(name, `${JSON.stringify(report, null, 2)}\n`, 'application/json');
-    toast('Audit report saved — it contains no original values');
-    log(`Downloaded audit report ${name}`);
-  });
-
-  // Two-step confirmation instead of a blocking dialog: the key file contains real PII.
-  let keyArmed: ReturnType<typeof setTimeout> | undefined;
-  el.key.addEventListener('click', () => {
-    const r = state.result;
-    if (!r) return;
-    if (keyArmed === undefined) {
-      el.key.textContent = 'Contains real PII — click again to save';
-      keyArmed = setTimeout(() => {
-        keyArmed = undefined;
-        el.key.textContent = 'Re-identification key';
-      }, 4000);
-      return;
-    }
-    clearTimeout(keyArmed);
-    keyArmed = undefined;
-    el.key.textContent = 'Re-identification key';
-    const name = `${sanitizedFileName(state.fileName).replace(/\.[^.]+$/, '')}.key.json`;
-    downloadText(name, `${JSON.stringify(buildKeyFile(r.mapping, new Date()), null, 2)}\n`, 'application/json');
-    toast('Key saved. Store it separately from the sanitized file.');
-    log(`Downloaded re-identification key (${plural(r.mapping.length, 'token')})`);
-  });
-
-  el.restoreRun.addEventListener('click', () => {
-    const r = state.result;
-    if (!r) return;
-    const { text, restored } = reidentify(el.restoreInput.value, r.mapping);
-    el.restoreOutput.hidden = false;
-    el.restoreOutput.textContent = text;
-    el.restoreStatus.textContent = `${plural(restored, 'token')} restored`;
-    log(`Re-identified ${plural(restored, 'token')} in a pasted reply`);
-  });
-
-  // --------------------------------------------------- privacy instrumentation
-  // Count any request the page itself makes after start-up. With
-  // connect-src 'none' these can't succeed, and the counter proves it.
-  let outbound = 0;
-  let blocked = 0;
-  function updatePill(): void {
-    el.netCount.textContent = outbound === 0 ? '0 network requests' : `${plural(outbound, 'request')} attempted`;
-    el.privacyPill.classList.toggle('is-alert', outbound > 0 || blocked > 0);
-  }
-  if (typeof PerformanceObserver !== 'undefined') {
-    try {
-      new PerformanceObserver((list) => {
-        for (const entry of list.getEntries() as PerformanceResourceTiming[]) {
-          if (['fetch', 'xmlhttprequest', 'beacon'].includes(entry.initiatorType)) outbound++;
-        }
-        updatePill();
-      }).observe({ type: 'resource', buffered: true });
-    } catch {
-      /* resource timing unsupported */
-    }
-  }
-  document.addEventListener('securitypolicyviolation', (e) => {
-    if (e.effectiveDirective === 'connect-src') {
-      blocked++;
-      el.privacyPill.title = `${plural(blocked, 'outbound connection')} blocked by the Content-Security-Policy.`;
-      updatePill();
-    }
-  });
-  updatePill();
+  bindExports(
+    {
+      download: el.download,
+      copy: el.copy,
+      report: el.report,
+      key: el.key,
+      output: el.paneOutput,
+      restoreInput: el.restoreInput,
+      restoreRun: el.restoreRun,
+      restoreStatus: el.restoreStatus,
+      restoreOutput: el.restoreOutput,
+    },
+    {
+      result: () => state.result,
+      fileName: () => state.fileName,
+      mode: () => state.settings.mode,
+      strict: () => state.settings.strict,
+      toast,
+      log,
+    },
+  );
 
   // ------------------------------------------------------------------- boot
+  watchNetwork(el.netCount, el.privacyPill);
   applySettingsToControls();
-  // On phones the 16-item type list would push the input far down the page.
+  // On phones the long type list would push the input far down the page.
   if (typeof matchMedia === 'function' && matchMedia('(max-width: 760px)').matches) el.typesDetails.open = false;
-  el.activity.append(h('li', { class: 'activity-empty', text: 'No activity yet.' }));
   void analyzeNow();
 
   return {

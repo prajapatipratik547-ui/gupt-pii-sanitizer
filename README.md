@@ -1,10 +1,35 @@
 # Gupt (गुप्त): private PII sanitizer
 
+[![CI & Pages](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml/badge.svg)](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/tests-195%20unit%20%2B%2039%20e2e-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-97%25%20lines-brightgreen)
+![Lighthouse](https://img.shields.io/badge/Lighthouse-100%20·%20100%20·%20100-brightgreen)
+![Runtime dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 **Paste text or drop a `.txt` / `.csv` file. Gupt finds the personal data in it, classifies it and redacts it without the text ever leaving your browser.**
+
+### ▶ Live demo: **https://prajapatipratik547-ui.github.io/gupt-pii-sanitizer/**
 
 Built for **PromptWars × NIAT (GDG)**, Cybersecurity & Data Privacy track, in **Google Antigravity** with Claude Code as the coding agent. Every prompt is recorded in [`PROMPT_LOG.md`](PROMPT_LOG.md).
 
 > *Gupt* is Hindi for "hidden" or "secret".
+
+![Gupt with the noisy sample loaded: 32 values redacted, 5 false positives blocked](docs/screenshots/overview.jpg)
+
+## Try it in 60 seconds
+
+1. Open the [live demo](https://prajapatipratik547-ui.github.io/gupt-pii-sanitizer/) and click **Load noisy sample**. 32 values are redacted across 17 types, and **5 look-alikes are blocked**.
+2. Scroll to **Side-by-side review**. Hover any highlight to see its pair on the other side.
+3. Switch to **Partial mask** (`XXXX-XXXX-XXXX-2346`), then **Consistent pseudonyms**. `priya.sharma@…` and `Priya.Sharma@Example.com` both become `USER_01`.
+4. Open **Findings → 5 look-alikes rejected**. `1234567890123456` was skipped because its *Luhn checksum failed*, and `2345 6789 0125` because its *Verhoeff checksum failed*.
+5. Click **Download incident-export.sanitized.txt**.
+6. Bonus: pick **False-positive torture test** from the sample menu. Only 1 of 16 suspicious-looking values is real, and Gupt finds exactly that one.
+
+| Pseudonymized diff | Every rejected look-alike, with its reason |
+| --- | --- |
+| ![Side-by-side diff in pseudonym mode](docs/screenshots/diff-pseudonyms.jpg) | ![Findings table and false positives blocked](docs/screenshots/false-positives.jpg) |
+| ![Dark theme, partial masking](docs/screenshots/dark-partial.jpg) | ![Mobile layout](docs/screenshots/mobile.jpg) |
 
 ---
 
@@ -22,7 +47,7 @@ Gupt is a static web app. All detection, redaction and export runs in the tab, a
 | --- | --- |
 | **Paste raw text or upload .txt/.csv** | Paste box, file picker and drag-and-drop. Also reads `.log`, `.tsv` and `.md`. Handles UTF-8, UTF-16 and BOMs, refuses binary files, 10 MB limit. |
 | **Client-side only** | Zero runtime dependencies. CSP `connect-src 'none'`, `default-src 'none'`, `form-action 'none'`. A live counter shows network requests made (always 0). ESLint bans `fetch`, `XMLHttpRequest` and `WebSocket` in app code. |
-| **1. Detect emails, phones, IPs, PAN, Aadhaar, cards** | Emails. Indian mobiles (+91 / 0 / bare), landlines with STD code, international E.164. IPv4 and IPv6 (compressed and IPv4-embedded). PAN. Aadhaar (spaced, hyphenated, compact). Cards from every major network, including RuPay. |
+| **1. Detect emails, phones, IPs, PAN, Aadhaar, cards** | Emails, including URL-encoded ones in logs (`a%40b.com`). Indian mobiles (+91 / 0 / bare), landlines with STD code, international E.164. IPv4 and IPv6 (compressed and IPv4-embedded). PAN. Aadhaar (spaced, hyphenated, compact). Cards from every major network, including RuPay. |
 | **…and highlight them** | Colour-coded highlights with a text type tag, so colour is never the only cue. Hovering a highlight outlines its pair in the other pane. |
 | **2. Luhn validation for cards** | Luhn checksum plus a check of the issuer prefix and length (Visa, Mastercard incl. 2-series, RuPay, Amex, Discover, Diners, JCB, UnionPay, Maestro). Random 16-digit order IDs, timestamps and `0000…` placeholders are rejected, and the reason is shown. |
 | **Extra validation (beyond the brief)** | **Verhoeff** checksum for Aadhaar (the algorithm UIDAI uses). PAN holder-type letter. GSTIN mod-36 check character. IPv4 octet ranges. Structural IPv6 parsing. Version strings like `build 2.4.1.9` are not treated as IPs. |
@@ -39,7 +64,7 @@ Gupt is a static web app. All detection, redaction and export runs in the tab, a
 
 - **"False positives blocked" panel.** Every look-alike that failed validation is listed with the reason it was skipped, for example `1234567890123456: Luhn checksum failed`.
 - **Strict / relaxed validation toggle.** Relaxed mode also flags numbers that have the right shape but fail their checksum, at lower confidence.
-- **10 extra entity types:** UPI IDs, GSTIN, passport numbers, bank accounts, secrets (AWS, GitHub, Stripe and Google keys, JWTs, bearer tokens, `password=`), MAC addresses, person names, dates of birth, postal addresses, and your own custom terms.
+- **11 extra entity types:** UPI IDs, profile URLs (LinkedIn, GitHub, X…), GSTIN, passport numbers, bank accounts, secrets (AWS, GitHub, Stripe and Google keys, JWTs, bearer tokens, `password=`), MAC addresses, person names, dates of birth, postal addresses, and your own custom terms.
 - **Name tracking.** "Patient: Anjali Mehta" is detected from its label. Later mentions such as "Mrs. Mehta" are then linked to the **same** pseudonym. If a surname belongs to two different people, Gupt does not guess.
 - **Column-aware CSV.** A `full_name`, `dob` or `address` column is redacted cell by cell, quoting is preserved, and placeholder rows like "Test User" are skipped.
 - **Keep a value.** Click any highlight, or use the Keep button in the findings table, to leave that value un-redacted everywhere in the document.
@@ -53,7 +78,7 @@ Gupt is a static web app. All detection, redaction and export runs in the tab, a
 ## How detection works
 
 ```
-text ──► 29 detectors (regex anchored at token boundaries)
+text ──► 30 detectors (regex anchored at token boundaries)
             │
             ├─ context rules: "passport" required nearby · "version 1.2.3.4" rejected · "Aadhaar" boosts confidence
             ├─ validators: Luhn + IIN · Verhoeff · PAN holder type · GSTIN mod-36 · IPv4 range · IPv6 parse
@@ -71,6 +96,8 @@ text ──► 29 detectors (regex anchored at token boundaries)
 Every pattern starts with a negative look-behind, so it can only begin at a token boundary. This keeps scanning linear even on a 2 MB line with no spaces, and a test checks it.
 
 ## Security model
+
+See [`SECURITY.md`](SECURITY.md) for the full policy and how to verify each guarantee yourself. Dependabot checks npm and GitHub Actions dependencies weekly.
 
 | Threat | Mitigation |
 | --- | --- |
@@ -95,12 +122,39 @@ Every pattern starts with a negative look-behind, so it can only begin at a toke
 ## Testing
 
 ```bash
-npm test            # 174 tests: validators, detectors, redaction, CSV, pipeline, report, UI flows, axe
-npm run coverage    # core engine: ~99% lines, ~93% branches (thresholds enforced)
+npm test            # 195 unit + integration tests (Vitest, node + jsdom, axe-core)
+npm run coverage    # whole app: ~97% lines, ~95% statements, ~89% branches (thresholds enforced)
 npm run check       # typecheck + lint + test + build
+npm run e2e         # 39 end-to-end checks in real headless Chrome (needs `npm run preview -- --port 4317`)
 ```
 
-The UI tests load the real `index.html` in jsdom and click through each flow: sample loading, typing, upload, binary-file refusal, every mode, keep and unkeep, filters, custom terms, all four downloads, clipboard fallback, restore and theme.
+The UI tests load the real `index.html` in jsdom and click through each flow: sample loading, typing, upload, binary-file refusal, every mode, keep and unkeep, filters, custom terms, all four downloads, clipboard fallback, restore and theme. Module tests cover the Web Worker client, including its crash fallback to the main thread, plus scroll sync and the privacy monitor.
+
+The **end-to-end suite** ([`scripts/e2e.mjs`](scripts/e2e.mjs)) drives the production build in headless Chrome over the DevTools protocol, with no test framework or extra dependency. CI runs it on every push. It checks:
+
+- the CSP is present and there are zero requests to other origins;
+- real file downloads contain no original values;
+- the audit report is PII-free;
+- an XSS payload is shown as text and never executed;
+- CSV and binary-file uploads behave correctly;
+- every sample loads;
+- **2 MB of text is processed in ~130 ms**;
+- the app keeps working with the network switched **offline**;
+- keyboard navigation starts at the skip link;
+- there are zero console errors.
+
+### Scores
+
+| Check | Result |
+| --- | --- |
+| Lighthouse (mobile and desktop) | Performance **100** · Accessibility **100** · Best Practices **100** |
+| axe-core | 0 violations (empty and loaded states) |
+| `npm audit` | 0 vulnerabilities |
+| Bundle | ~100 KB total, 0 runtime dependencies |
+| Noisy sample (1.7 KB) | ~3 ms in a Web Worker |
+| 2 MB log | ~130 ms |
+
+Lighthouse SEO scores 91 because its in-page `robots.txt` fetch is blocked by our own `connect-src 'none'`. That is the privacy guarantee doing its job.
 
 ## Run locally
 
@@ -120,9 +174,9 @@ Requires Node 20+. The production build is about 100 KB in total and needs no se
 ```
 src/
   core/                 pure, framework-free engine (runs in the worker and in tests)
-    entities.ts         registry of 17 entity types: label, priority, pseudonym prefix
+    entities.ts         registry of 18 entity types: label, priority, pseudonym prefix
     validators.ts       Luhn, IIN brands, Verhoeff, PAN, GSTIN, IPv4/IPv6
-    detectors.ts        29 boundary-anchored detectors with context rules
+    detectors.ts        30 boundary-anchored detectors with context rules
     engine.ts           detection, CSV columns, name propagation, overlap resolution
     normalize.ts        canonical keys for consistent pseudonyms
     redact.ts           full / partial / pseudonym modes, re-identification
@@ -130,9 +184,11 @@ src/
     pipeline.ts         analyze(): detect + redact + counts + timing
     report.ts           PII-free audit report, key file, file names
     samples.ts          6 synthetic noisy samples
-  ui/                   DOM layer (no framework)
+  ui/                   DOM layer (no framework): app, render, diff, exports, privacy monitor, theme
   worker.ts             Web Worker entry
 tests/                  Vitest (node + jsdom), axe-core
+scripts/e2e.mjs         end-to-end checks in headless Chrome over the DevTools protocol
+docs/screenshots/       images used in this README
 ```
 
 ## Honest limitations

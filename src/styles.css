@@ -37,6 +37,7 @@
   --c-AADHAAR: #dc2626;
   --c-CREDIT_CARD: #db2777;
   --c-UPI: #0e7490;
+  --c-PROFILE_URL: #1d4ed8;
   --c-GSTIN: #a16207;
   --c-PASSPORT: #4338ca;
   --c-BANK_ACCOUNT: #4d7c0f;
@@ -78,6 +79,7 @@
     --c-AADHAAR: #f87171;
     --c-CREDIT_CARD: #f472b6;
     --c-UPI: #22d3ee;
+    --c-PROFILE_URL: #93c5fd;
     --c-GSTIN: #facc15;
     --c-PASSPORT: #818cf8;
     --c-BANK_ACCOUNT: #a3e635;
@@ -119,6 +121,7 @@
   --c-AADHAAR: #f87171;
   --c-CREDIT_CARD: #f472b6;
   --c-UPI: #22d3ee;
+  --c-PROFILE_URL: #93c5fd;
   --c-GSTIN: #facc15;
   --c-PASSPORT: #818cf8;
   --c-BANK_ACCOUNT: #a3e635;
@@ -996,6 +999,7 @@ fieldset {
 .t-AADHAAR { --c: var(--c-AADHAAR); }
 .t-CREDIT_CARD { --c: var(--c-CREDIT_CARD); }
 .t-UPI { --c: var(--c-UPI); }
+.t-PROFILE_URL { --c: var(--c-PROFILE_URL); }
 .t-GSTIN { --c: var(--c-GSTIN); }
 .t-PASSPORT { --c: var(--c-PASSPORT); }
 .t-BANK_ACCOUNT { --c: var(--c-BANK_ACCOUNT); }
@@ -1221,6 +1225,11 @@ fieldset {
   gap: 4px;
   font-size: 13px;
   color: var(--text-2);
+}
+
+.footer a {
+  color: var(--accent-strong);
+  text-underline-offset: 2px;
 }
 
 .toast {

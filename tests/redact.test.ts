@@ -25,7 +25,10 @@ describe('partial mask', () => {
     ['PHONE', '9876543210', 'XXXXXX3210'],
     ['PHONE', '+44 20 7946 0958', '+44 XX XXXX 0958'],
     ['EMAIL', 'priya.sharma@example.com', 'p****@example.com'],
+    ['EMAIL', 'neha%40example.com', 'n****%40example.com'],
     ['UPI', 'rahulv@okaxis', 'r****@okaxis'],
+    ['PROFILE_URL', 'linkedin.com/in/aarav-k-example', 'linkedin.com/in/a***'],
+    ['PROFILE_URL', 'https://medium.com/@aarav', 'https://medium.com/@a***'],
     ['PAN', 'ABCPV1234K', 'XXXXXX234K'],
     ['GSTIN', '27AAPFU0939F1ZV', '27XXXXXXXXXX1ZV'],
     ['PASSPORT', 'K1234567', 'KXXXXX67'],
@@ -68,6 +71,14 @@ describe('consistent pseudonymization', () => {
     );
     expect(r.mapping.find((m) => m.token === 'USER_01')).toMatchObject({ original: 'priya@example.com', occurrences: 2 });
     expect(r.uniqueValues).toBe(4);
+  });
+
+  it('treats a URL-encoded email as the same person', () => {
+    expect(run('neha@example.com then ?email=neha%40example.com', { mode: 'pseudonym' }).output).toBe('USER_01 then ?email=USER_01');
+  });
+
+  it('treats different spellings of a profile link as one profile', () => {
+    expect(run('https://www.linkedin.com/in/Aarav and linkedin.com/in/aarav', { mode: 'pseudonym' }).output).toBe('PROFILE_01 and PROFILE_01');
   });
 
   it('numbers IPv4 and IPv6 in one IP namespace', () => {

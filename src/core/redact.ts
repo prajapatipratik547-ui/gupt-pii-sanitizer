@@ -1,6 +1,6 @@
 import { ENTITY_INFO, type EntityType } from './entities';
 import type { Entity } from './engine';
-import { expandIPv6 } from './validators';
+import { emailAtIndex, expandIPv6 } from './validators';
 
 export type RedactionMode = 'full' | 'partial' | 'pseudonym';
 
@@ -44,8 +44,7 @@ export function maskDigitsKeepLast(value: string, keep: number): string {
 const maskAlnum = (s: string): string => s.replace(/[\p{L}\p{N}]/gu, 'X');
 
 function maskLocalPart(value: string): string {
-  const at = value.lastIndexOf('@');
-  return `${value.charAt(0)}****${value.slice(at)}`;
+  return `${value.charAt(0)}****${value.slice(emailAtIndex(value))}`;
 }
 
 /** Type-aware partial mask: keep just enough to recognise the value, hide the rest. */
@@ -62,6 +61,13 @@ export function partialMask(type: EntityType, value: string): string {
     case 'EMAIL':
     case 'UPI':
       return maskLocalPart(value);
+    case 'PROFILE_URL': {
+      // Keep the site so the reader knows what it was; hide the handle.
+      const slash = value.lastIndexOf('/');
+      const handle = value.slice(slash + 1);
+      const at = handle.startsWith('@') ? '@' : '';
+      return `${value.slice(0, slash + 1)}${at}${handle.charAt(at.length)}***`;
+    }
     case 'PAN':
       return `XXXXXX${value.slice(6)}`;
     case 'GSTIN':

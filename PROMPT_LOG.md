@@ -56,6 +56,50 @@ This is the record of how Gupt was built with AI assistance: each prompt, what i
 
 ---
 
+## Prompt 3: deploy check
+
+> We don't have to deploy this website? / I'm not able to test the live site.
+
+**What happened:** the rules only require a public repository, so the live site is optional but useful for judges. GitHub Pages was enabled with *GitHub Actions* as the source, and the failed deploy job was re-run. The AI then loaded the live site in headless Chrome and confirmed 32 values redacted, 5 look-alikes blocked, the CSP active, and only same-origin requests.
+
+---
+
+## Prompt 4: full audit before submission
+
+> Test each and everything. Check the project, GitHub, README and all. We don't have to miss anything.
+
+**Gaps found by reading every sample's sanitized output, and fixed:**
+
+| Finding | Fix |
+| --- | --- |
+| `email=neha.kapoor%40example.com` in the access-log sample stayed visible. URL-encoded addresses are common in logs. | The email detector accepts `%40`. Normalisation maps it to the same `USER_xx` as the plain spelling, and partial masks keep the `%40`. |
+| `linkedin.com/in/aarav-k-example` in the resume stayed visible, and it contains the person's name. | New **Profile URL** type covering LinkedIn, GitHub, GitLab, X/Twitter, Instagram, Facebook, Telegram and Medium. Site pages such as `github.com/features` and look-alike domains such as `dropbox.com` are ignored. |
+| The first Medium pattern required an extra `/` before `@handle`. | Caught by the new unit test and fixed. |
+
+**Code quality:** `startApp` was a single 557-line function. The privacy monitor, theme, toast and activity log, diff-pane interactions and export actions moved into focused modules (`ui/privacy.ts`, `theme.ts`, `feedback.ts`, `diff.ts`, `exports.ts`). UI tests guarded the refactor.
+
+**Testing:**
+
+- New module tests cover the Web Worker client, including its crash fallback to the main thread, the worker entry point, scroll sync, hover pairing, the privacy monitor and the theme.
+- Coverage now measures the whole app (about 97% of lines) instead of only the engine.
+- `scripts/e2e.mjs` drives the production build in real headless Chrome with 39 checks, and CI runs it on every push. It covers:
+  - real file downloads with no PII in them, and a PII-free audit report;
+  - an XSS payload that is never executed;
+  - CSV upload and binary-file refusal;
+  - all six samples;
+  - 2 MB of text in about 130 ms;
+  - offline mode;
+  - the skip link as the first Tab stop;
+  - zero requests to other origins and zero console errors.
+
+**Repository:**
+
+- The README now opens with the live demo, badges, screenshots and a 60-second walkthrough for judges, and every number in it was re-measured.
+- Added `SECURITY.md` and a Dependabot configuration.
+- The app footer links to the source, the prompt log and the security policy.
+
+---
+
 ## Next prompts
 
 _Add each further prompt below in the same format: the prompt, what changed, and anything the AI got wrong that you corrected._

@@ -70,6 +70,26 @@ function validateUpi(value: string, ctx: DetectContext): CheckResult {
   return { ok: false, reason: 'Unknown UPI handle and no UPI context nearby' };
 }
 
+// --- Profile URLs ----------------------------------------------------------
+/** Site sections that are not a person's profile (github.com/features, x.com/home…). */
+const NON_PROFILE_PATHS: ReadonlySet<string> = new Set([
+  'about', 'features', 'pricing', 'login', 'signup', 'join', 'home', 'explore', 'settings', 'orgs', 'topics',
+  'marketplace', 'sponsors', 'search', 'share', 'help', 'privacy', 'terms', 'jobs', 'company', 'pages', 'groups',
+  'events', 'hashtag', 'intent', 'i', 'notifications', 'messages', 'watch', 'apps', 'enterprise', 'security',
+]);
+
+export function profileHandle(url: string): string {
+  return url.slice(url.lastIndexOf('/') + 1).replace(/^@/, '');
+}
+
+function validateProfileUrl(value: string): CheckResult {
+  const handle = profileHandle(value).toLowerCase();
+  if (NON_PROFILE_PATHS.has(handle)) return { ok: false, reason: `"${handle}" is a site page, not a profile` };
+  const site = /(linkedin|github|gitlab|twitter|x|instagram|facebook|t|medium)\.(?:com|me)/i.exec(value)?.[1]?.toLowerCase() ?? 'web';
+  const names: Record<string, string> = { t: 'Telegram', x: 'X (Twitter)', twitter: 'X (Twitter)', linkedin: 'LinkedIn', github: 'GitHub', gitlab: 'GitLab', instagram: 'Instagram', facebook: 'Facebook', medium: 'Medium' };
+  return ok('Personal profile link', names[site] ?? site);
+}
+
 // --- Phones ----------------------------------------------------------------
 function validateIndianMobile(value: string): CheckResult {
   const digits = value.replace(/\D/g, '');
@@ -129,9 +149,18 @@ export const DETECTORS: readonly Detector[] = [
   {
     id: 'email',
     type: 'EMAIL',
-    pattern: /(?<![\w.+%-])[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,24}(?![\w-])/dg,
+    // `%40` covers URL-encoded addresses in query strings and access logs (?email=a%40b.com).
+    pattern: /(?<![\w.+%-])[A-Za-z0-9._%+-]+(?:@|%40)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,24}(?![\w-])/dg,
     confidence: 0.98,
     validate: validateEmail,
+  },
+  {
+    id: 'profile-url',
+    type: 'PROFILE_URL',
+    pattern:
+      /(?<![\w@./-])(?:https?:\/\/)?(?:www\.)?(?:linkedin\.com\/in|github\.com|gitlab\.com|twitter\.com|x\.com|instagram\.com|facebook\.com|t\.me|medium\.com)\/@?[A-Za-z0-9_.-]{0,99}[A-Za-z0-9_-](?![\w-])/dgi,
+    confidence: 0.9,
+    validate: validateProfileUrl,
   },
   {
     id: 'phone-in-mobile',

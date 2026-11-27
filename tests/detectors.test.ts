@@ -11,6 +11,37 @@ describe('emails', () => {
   it('keeps the trailing full stop out of the match', () => {
     expect(valuesOf('Write to priya@example.com.', 'EMAIL')).toEqual(['priya@example.com']);
   });
+
+  it('catches URL-encoded addresses in query strings and access logs', () => {
+    const r = find('GET /profile?email=neha.kapoor%40example.com&x=1 HTTP/1.1');
+    expect(r.entities.map((e) => [e.type, e.value, e.meta])).toEqual([['EMAIL', 'neha.kapoor%40example.com', 'URL-encoded (%40)']]);
+  });
+});
+
+describe('profile URLs', () => {
+  it('detects personal profile links on common networks', () => {
+    const text = [
+      'linkedin.com/in/aarav-k-example',
+      'https://www.github.com/aarav-k',
+      'https://x.com/aarav_k.',
+      'instagram.com/aarav.k',
+      'https://medium.com/@aarav',
+      't.me/aaravk',
+    ].join(' | ');
+    expect(valuesOf(text, 'PROFILE_URL')).toEqual([
+      'linkedin.com/in/aarav-k-example',
+      'https://www.github.com/aarav-k',
+      'https://x.com/aarav_k',
+      'instagram.com/aarav.k',
+      'https://medium.com/@aarav',
+      't.me/aaravk',
+    ]);
+  });
+
+  it('names the network and ignores site pages and look-alike domains', () => {
+    expect(find('see linkedin.com/in/aarav').entities[0]?.meta).toBe('LinkedIn');
+    expect(valuesOf('github.com/features and x.com/home and dropbox.com/aarav and mybox.com/aarav', 'PROFILE_URL')).toEqual([]);
+  });
 });
 
 describe('phones', () => {

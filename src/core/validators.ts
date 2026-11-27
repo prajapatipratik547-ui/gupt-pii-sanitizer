@@ -243,12 +243,17 @@ export function validateIPv6(raw: string): CheckResult {
   return { ok: true, note: 'Valid IPv6 structure', meta: scope };
 }
 
-export function validateEmail(raw: string): CheckResult {
+/** Index of the @ in an address, accepting the URL-encoded form %40. */
+export function emailAtIndex(raw: string): number {
   const at = raw.lastIndexOf('@');
-  const local = raw.slice(0, at);
+  return at !== -1 ? at : raw.toLowerCase().lastIndexOf('%40');
+}
+
+export function validateEmail(raw: string): CheckResult {
+  const local = raw.slice(0, emailAtIndex(raw));
   if (local.length === 0 || local.length > 64) return { ok: false, reason: 'Local part length invalid' };
   if (local.startsWith('.') || local.endsWith('.') || local.includes('..')) return { ok: false, reason: 'Misplaced dots in local part' };
-  return { ok: true, note: 'Well-formed address' };
+  return raw.includes('@') ? { ok: true, note: 'Well-formed address' } : { ok: true, note: 'Well-formed address', meta: 'URL-encoded (%40)' };
 }
 
 export function digitCount(s: string): number {

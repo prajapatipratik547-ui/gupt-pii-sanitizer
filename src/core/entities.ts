@@ -17,6 +17,7 @@ export const ENTITY_TYPES = [
   'AADHAAR',
   'CREDIT_CARD',
   'UPI',
+  'PROFILE_URL',
   'GSTIN',
   'PASSPORT',
   'BANK_ACCOUNT',
@@ -106,6 +107,14 @@ export const ENTITY_INFO: Record<EntityType, EntityInfo> = {
     priority: 65,
     prefix: 'UPI',
     description: 'name@bank virtual payment addresses with a known UPI handle or nearby UPI context.',
+  },
+  PROFILE_URL: {
+    label: 'Profile URL',
+    short: 'URL',
+    tier: 'extended',
+    priority: 68,
+    prefix: 'PROFILE',
+    description: 'Links to a personal LinkedIn, GitHub, GitLab, X/Twitter, Instagram, Facebook, Telegram or Medium profile.',
   },
   GSTIN: {
     label: 'GSTIN',
