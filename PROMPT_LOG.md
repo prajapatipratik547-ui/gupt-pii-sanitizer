@@ -143,6 +143,7 @@ The AI targeted the two lowest scores.
 | Change | Why |
 | --- | --- |
 | **Detection memo** in `core/pipeline.ts` | Switching the redaction mode re-ran all 30 detectors even though only the masking changes. The last detection is now reused when the text and the detection settings are unchanged, and a test checks both reuse and invalidation. |
+| **Request coalescing** in `ui/analyzer.ts` | Rapid changes queued one worker job each. Now one job runs and one waits, and a newer request replaces the waiting one. A test checks that the superseded request never reaches the worker. |
 | README **Performance design** section | The worker, debounce, stale-result drop, linear-time regexes, bitmap overlap resolution, binary-search line lookup and capped DOM rendering were all in the code but not documented. |
 | **Prettier** with a CI format check | One enforced code style across `src/`, `tests/` and `scripts/`. |
 | **Cloud Run container** (`Dockerfile`, `nginx.conf`) | The form asks for a Cloud Run URL. The container sends the CSP as real HTTP headers, including `frame-ancestors 'none'`, and CI runs all 41 end-to-end checks against it. |

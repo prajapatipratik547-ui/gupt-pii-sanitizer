@@ -1,7 +1,7 @@
 # Gupt (गुप्त): private PII sanitizer
 
 [![CI & Pages](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml/badge.svg)](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-230%20unit%20%2B%2041%20e2e-brightgreen)
+![Tests](https://img.shields.io/badge/tests-231%20unit%20%2B%2041%20e2e-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-97%25%20lines-brightgreen)
 ![Lighthouse](https://img.shields.io/badge/Lighthouse-100%20·%20100%20·%20100-brightgreen)
 ![Runtime dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)
@@ -124,7 +124,7 @@ See [`SECURITY.md`](SECURITY.md) for the full policy and how to verify each guar
 ## Testing
 
 ```bash
-npm test            # 230 unit + integration tests (Vitest, node + jsdom, axe-core, ReDoS guard)
+npm test            # 231 unit + integration tests (Vitest, node + jsdom, axe-core, ReDoS guard)
 npm run coverage    # whole app: ~97% lines, ~95% statements, ~89% branches (thresholds enforced)
 npm run check       # typecheck + lint + format check + test + build
 npm run e2e         # 41 end-to-end checks in real headless Chrome (needs `npm run preview -- --port 4317`)
@@ -166,6 +166,7 @@ Gupt stays responsive on multi-megabyte logs because the expensive work is done 
 | --- | --- | --- |
 | Web Worker | [`worker.ts`](src/worker.ts), [`ui/analyzer.ts`](src/ui/analyzer.ts) | Detection never blocks typing or scrolling. The engine is only loaded on the main thread if the worker fails. |
 | Detection memo | [`core/pipeline.ts`](src/core/pipeline.ts) | Switching between Full, Partial and Pseudonym mode reuses the last detection and only re-runs redaction. The UI shows "detection reused". |
+| Request coalescing | [`ui/analyzer.ts`](src/ui/analyzer.ts) | At most one job runs in the worker and one waits. A newer request replaces the waiting one, so rapid changes never queue up work that would be thrown away. |
 | Debounce + stale-result drop | [`ui/app.ts`](src/ui/app.ts) | Typing triggers one run per 160 ms pause, and a result that a newer request has superseded is discarded instead of rendered. |
 | Linear-time regexes | [`core/detectors.ts`](src/core/detectors.ts) | Detectors are compiled once at load and anchored so they cannot backtrack catastrophically. [`tests/redos.test.ts`](tests/redos.test.ts) runs all 30 against 22 adversarial 100 KB inputs. |
 | Bitmap overlap resolution | [`core/engine.ts`](src/core/engine.ts) | Conflicting matches are resolved with a `Uint8Array` occupancy map in O(n + matched characters), not by comparing every pair. |

@@ -21,6 +21,7 @@ class FakeWorker {
   static behaviour: 'reply' | 'error-reply' | 'silent' = 'reply';
   listeners: Record<string, Listener[]> = {};
   terminated = false;
+  posted: string[] = [];
 
   constructor() {
     FakeWorker.instances.push(this);
@@ -31,6 +32,7 @@ class FakeWorker {
   }
 
   postMessage(msg: { id: number; request: AnalyzeRequest }): void {
+    this.posted.push(msg.request.text);
     if (FakeWorker.behaviour === 'silent') return;
     const data = FakeWorker.behaviour === 'reply' ? { id: msg.id, result: analyze(msg.request) } : { id: msg.id, error: 'boom' };
     queueMicrotask(() => this.emit('message', { data }));
@@ -59,6 +61,19 @@ describe('Analyzer (Web Worker client)', () => {
     expect(analyzer.mode).toBe('worker');
     const result = await analyzer.analyze(request('mail priya@example.com'));
     expect(result.output).toBe('mail [REDACTED]');
+  });
+
+  it('coalesces requests that arrive while the worker is busy', async () => {
+    const analyzer = new Analyzer(true);
+    const first = analyzer.analyze(request('a@b.co'));
+    const superseded = analyzer.analyze(request('c@d.co'));
+    const latest = analyzer.analyze(request('e@f.co and g@h.co'));
+    const [r1, r2, r3] = await Promise.all([first, superseded, latest]);
+    // The middle request never reached the worker: it was replaced while waiting.
+    expect(FakeWorker.instances[0]?.posted).toEqual(['a@b.co', 'e@f.co and g@h.co']);
+    expect(r1.total).toBe(1);
+    expect(r2).toBe(r3);
+    expect(r3.total).toBe(2);
   });
 
   it('rejects when the worker reports an error', async () => {
