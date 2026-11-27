@@ -47,14 +47,23 @@ const chrome = spawn(
   { stdio: 'ignore' },
 );
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Wait up to 30 s for Chrome: cold starts on shared CI runners can be slow.
 let target;
-for (let i = 0; i < 50 && !target; i++) {
+for (let i = 0; i < 150 && !target; i++) {
   await sleep(200);
   try {
-    target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === 'page');
+    const targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
+    target = targets.find((t) => t.type === 'page');
+    // DevTools is up but the initial tab is not open yet: open one ourselves.
+    if (!target && i >= 10) target = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: 'PUT' })).json();
   } catch {
     // Chrome is still starting; retry.
   }
+}
+if (!target?.webSocketDebuggerUrl) {
+  console.error('Chrome did not expose a page target within 30 s.');
+  chrome.kill();
+  process.exit(2);
 }
 const ws = new WebSocket(target.webSocketDebuggerUrl);
 await new Promise((r) => ws.addEventListener('open', r));
