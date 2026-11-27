@@ -40,6 +40,28 @@ jobs:
         with:
           path: dist
 
+  container:
+    name: Cloud Run container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: docker build -t gupt .
+      - run: docker run -d --rm -p 8080:8080 --name gupt gupt
+      - name: Verify HTTP security headers
+        run: |
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8080/ > /dev/null && break; sleep 1; done
+          curl -sI http://127.0.0.1:8080/ | tee headers.txt
+          grep -qi "^content-security-policy: .*connect-src 'none'.*frame-ancestors 'none'" headers.txt
+          grep -qi "^x-content-type-options: nosniff" headers.txt
+          grep -qi "^referrer-policy: no-referrer" headers.txt
+          grep -qi "^cross-origin-opener-policy: same-origin" headers.txt
+          ! grep -qi "^server: nginx/" headers.txt
+      - name: End-to-end tests against the container
+        run: node scripts/e2e.mjs http://127.0.0.1:8080/
+
   deploy:
     name: Deploy to GitHub Pages
     needs: check

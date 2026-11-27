@@ -169,6 +169,12 @@ npm run preview
 
 Requires Node 20+. The production build is about 100 KB in total and needs no server-side code. Host `dist/` anywhere static.
 
+**Deploying to Google Cloud Run:** the [`Dockerfile`](Dockerfile) builds the site and serves it with nginx as a non-root user. The same CSP is sent as real HTTP headers, together with `frame-ancestors 'none'`, which a `<meta>` tag cannot carry. CI builds the container and runs the full end-to-end suite against it on every push.
+
+```bash
+gcloud run deploy gupt --source . --region asia-south1 --allow-unauthenticated
+```
+
 **Deploying with GitHub Pages:** in the repository go to *Settings → Pages → Source → GitHub Actions*. The included workflow tests, builds and deploys on every push to `main`. No extra branch is created, so the repository keeps a single branch as the rules require.
 
 ## Project structure
@@ -190,6 +196,7 @@ src/
   worker.ts             Web Worker entry
 tests/                  Vitest (node + jsdom), axe-core
 scripts/e2e.mjs         end-to-end checks in headless Chrome over the DevTools protocol
+Dockerfile, nginx.conf  Cloud Run container: static files + HTTP security headers
 docs/screenshots/       images used in this README
 ```
 
