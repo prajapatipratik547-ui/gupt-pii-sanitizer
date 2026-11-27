@@ -2,6 +2,8 @@
 
 This is the record of how Gupt was built with AI assistance: each prompt, what it produced, and the decisions and corrections along the way. New entries go at the bottom.
 
+**Environment:** Google Antigravity IDE, with the Claude Code extension as the coding agent.
+
 ---
 
 ## Prompt 1: kick-off

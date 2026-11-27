@@ -2,7 +2,7 @@
 
 **Paste text or drop a `.txt` / `.csv` file. Gupt finds the personal data in it, classifies it and redacts it without the text ever leaving your browser.**
 
-Built for **PromptWars × NIAT (GDG)**, Cybersecurity & Data Privacy track.
+Built for **PromptWars × NIAT (GDG)**, Cybersecurity & Data Privacy track, in **Google Antigravity** with Claude Code as the coding agent. Every prompt is recorded in [`PROMPT_LOG.md`](PROMPT_LOG.md).
 
 > *Gupt* is Hindi for "hidden" or "secret".
 
