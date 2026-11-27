@@ -24,12 +24,7 @@ function entityTitle(e: Entity): string {
  * replacements. Text goes in as text nodes and highlights as <mark>, so the
  * panes are XSS-safe by construction.
  */
-export function renderPanes(
-  original: HTMLElement,
-  output: HTMLElement,
-  text: string,
-  result: AnalysisResult,
-): { truncated: boolean } {
+export function renderPanes(original: HTMLElement, output: HTMLElement, text: string, result: AnalysisResult): { truncated: boolean } {
   if (text.length === 0) {
     original.replaceChildren(h('span', { class: 'pane-empty', text: 'Your text appears here with every detection highlighted.' }));
     output.replaceChildren(h('span', { class: 'pane-empty', text: 'The sanitized version appears here, live.' }));
@@ -71,7 +66,13 @@ export function renderChips(list: HTMLElement, counts: Partial<Record<EntityType
   }
   list.replaceChildren(
     ...entries.map(([type, n]) =>
-      h('li', { class: `chip t-${type}` }, h('span', { class: 'swatch', 'aria-hidden': 'true' }), ENTITY_INFO[type].label, h('b', { text: n })),
+      h(
+        'li',
+        { class: `chip t-${type}` },
+        h('span', { class: 'swatch', 'aria-hidden': 'true' }),
+        ENTITY_INFO[type].label,
+        h('b', { text: n }),
+      ),
     ),
   );
 }
@@ -128,7 +129,13 @@ export function renderFindings(body: HTMLElement, result: AnalysisResult, filter
         h('td', { text: `${e.line}:${e.column}` }),
         h('td', {}, h('span', { class: `type-tag t-${e.type}` }, h('span', { class: 'swatch', 'aria-hidden': 'true' }), info.label)),
         h('td', {}, h('code', { text: e.value })),
-        h('td', {}, replacement === null || replacement === undefined ? h('span', { class: 'muted', text: 'kept as is' }) : h('code', { text: replacement })),
+        h(
+          'td',
+          {},
+          replacement === null || replacement === undefined
+            ? h('span', { class: 'muted', text: 'kept as is' })
+            : h('code', { text: replacement }),
+        ),
         h('td', { class: 'why' }, e.note, e.meta ? h('small', { text: e.meta }) : null),
         h(
           'td',
@@ -170,15 +177,17 @@ export function renderRejected(summary: HTMLElement, list: HTMLElement, result: 
   summary.textContent =
     n === 0 ? 'No look-alike numbers needed rejecting' : `${plural(n, 'look-alike')} rejected by validation (not redacted)`;
   list.replaceChildren(
-    ...result.rejected.slice(0, 500).map((r) =>
-      h(
-        'li',
-        {},
-        h('span', { class: 'muted', text: `Line ${r.line}` }),
-        h('code', { text: r.value }),
-        h('span', { text: `looked like ${ENTITY_INFO[r.type].label}` }),
-        h('span', { class: 'reason', text: `✓ ${r.reason}` }),
+    ...result.rejected
+      .slice(0, 500)
+      .map((r) =>
+        h(
+          'li',
+          {},
+          h('span', { class: 'muted', text: `Line ${r.line}` }),
+          h('code', { text: r.value }),
+          h('span', { text: `looked like ${ENTITY_INFO[r.type].label}` }),
+          h('span', { class: 'reason', text: `✓ ${r.reason}` }),
+        ),
       ),
-    ),
   );
 }

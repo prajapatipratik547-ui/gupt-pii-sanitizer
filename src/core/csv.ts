@@ -84,7 +84,8 @@ const HEADER_RULES: readonly { type: EntityType; pattern: RegExp }[] = [
   { type: 'DOB', pattern: /^(?:dob|d\.o\.b\.?|date[\s_-]?of[\s_-]?birth|birth[\s_-]?date|birthday)$/i },
   {
     type: 'ADDRESS',
-    pattern: /^(?:(?:home|residential|permanent|current|postal|mailing|billing|shipping|street)[\s_-]?address|address(?:[\s_-]?line[\s_-]?\d)?|street)$/i,
+    pattern:
+      /^(?:(?:home|residential|permanent|current|postal|mailing|billing|shipping|street)[\s_-]?address|address(?:[\s_-]?line[\s_-]?\d)?|street)$/i,
   },
 ];
 

@@ -10,7 +10,16 @@ import { createActivityLog, createToaster } from './feedback';
 import { bindExports } from './exports';
 import { readTextFile } from './files';
 import { watchNetwork } from './privacy';
-import { renderChips, renderFindings, renderPanes, renderRejected, renderTypeToggles, updateTypeCounts, PREVIEW_LIMIT, TABLE_LIMIT } from './render';
+import {
+  renderChips,
+  renderFindings,
+  renderPanes,
+  renderRejected,
+  renderTypeToggles,
+  updateTypeCounts,
+  PREVIEW_LIMIT,
+  TABLE_LIMIT,
+} from './render';
 import { type Settings, loadSettings, saveSettings } from './settings';
 import { applyTheme, nextTheme } from './theme';
 
@@ -142,7 +151,11 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
   // ----------------------------------------------------------------- render
   // CUSTOM has no checkbox: it switches on whenever the always-redact list has terms.
   const coreBadges = renderTypeToggles(el.coreList, CORE_TYPES, new Set(state.settings.enabled));
-  const extBadges = renderTypeToggles(el.extendedList, EXTENDED_TYPES.filter((t) => t !== 'CUSTOM'), new Set(state.settings.enabled));
+  const extBadges = renderTypeToggles(
+    el.extendedList,
+    EXTENDED_TYPES.filter((t) => t !== 'CUSTOM'),
+    new Set(state.settings.enabled),
+  );
 
   function render(): void {
     const r = state.result;
@@ -157,7 +170,9 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
     el.statUnique.textContent = r.uniqueValues.toLocaleString('en-IN');
     el.statRejected.textContent = r.rejected.length.toLocaleString('en-IN');
     el.statKept.textContent = r.keptCount.toLocaleString('en-IN');
-    el.timing.textContent = hasText ? `Analysed in ${r.ms} ms · ${analyzer.mode === 'worker' ? 'background worker' : 'main thread'}` : '';
+    el.timing.textContent = hasText
+      ? `Analysed in ${r.ms} ms · ${analyzer.mode === 'worker' ? 'background worker' : 'main thread'}${r.detectionCached ? ' · detection reused' : ''}`
+      : '';
 
     renderChips(el.chips, r.counts);
     updateTypeCounts(coreBadges, r.counts);
@@ -248,7 +263,9 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
     const sample = getSample(id);
     await loadText(sample.text, sample.fileName);
     const r = state.result;
-    log(`Loaded sample “${sample.title}” — ${r ? `${plural(r.total, 'value')} found, ${plural(r.rejected.length, 'look-alike')} rejected` : ''}`);
+    log(
+      `Loaded sample “${sample.title}” — ${r ? `${plural(r.total, 'value')} found, ${plural(r.rejected.length, 'look-alike')} rejected` : ''}`,
+    );
   }
 
   el.sampleSelect.replaceChildren(...SAMPLES.map((s) => h('option', { value: s.id, title: s.description, text: s.title })));

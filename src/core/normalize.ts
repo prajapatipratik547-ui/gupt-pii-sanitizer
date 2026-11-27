@@ -16,7 +16,11 @@ export function normalizeValue(type: EntityType, value: string): string {
     case 'UPI':
       return v.toLowerCase();
     case 'PROFILE_URL':
-      return v.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/@/, '/');
+      return v
+        .toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .replace(/\/@/, '/');
     case 'PHONE': {
       const digits = v.replace(/\D/g, '');
       // Indian numbers: drop +91 / 0091 / 0 trunk prefix so every spelling collapses to 10 digits.
@@ -40,7 +44,10 @@ export function normalizeValue(type: EntityType, value: string): string {
     case 'PERSON':
     case 'ADDRESS':
     case 'CUSTOM':
-      return v.toLowerCase().replace(/\s+/g, ' ').replace(/[.,]+$/, '');
+      return v
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .replace(/[.,]+$/, '');
     default:
       return v;
   }

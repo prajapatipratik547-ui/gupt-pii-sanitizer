@@ -476,7 +476,10 @@ textarea {
   font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    transform 80ms ease;
 }
 
 .btn svg {
@@ -660,7 +663,9 @@ fieldset {
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
 }
 
 .mode:hover {
@@ -943,7 +948,9 @@ fieldset {
   border-radius: 3px;
   padding: 1px 1px;
   cursor: pointer;
-  transition: background-color 100ms ease, outline-color 100ms ease;
+  transition:
+    background-color 100ms ease,
+    outline-color 100ms ease;
 }
 
 .pane-output .pii,
@@ -991,24 +998,60 @@ fieldset {
   text-decoration: none;
 }
 
-.t-EMAIL { --c: var(--c-EMAIL); }
-.t-PHONE { --c: var(--c-PHONE); }
-.t-IPV4 { --c: var(--c-IPV4); }
-.t-IPV6 { --c: var(--c-IPV6); }
-.t-PAN { --c: var(--c-PAN); }
-.t-AADHAAR { --c: var(--c-AADHAAR); }
-.t-CREDIT_CARD { --c: var(--c-CREDIT_CARD); }
-.t-UPI { --c: var(--c-UPI); }
-.t-PROFILE_URL { --c: var(--c-PROFILE_URL); }
-.t-GSTIN { --c: var(--c-GSTIN); }
-.t-PASSPORT { --c: var(--c-PASSPORT); }
-.t-BANK_ACCOUNT { --c: var(--c-BANK_ACCOUNT); }
-.t-SECRET { --c: var(--c-SECRET); }
-.t-MAC { --c: var(--c-MAC); }
-.t-PERSON { --c: var(--c-PERSON); }
-.t-DOB { --c: var(--c-DOB); }
-.t-ADDRESS { --c: var(--c-ADDRESS); }
-.t-CUSTOM { --c: var(--c-CUSTOM); }
+.t-EMAIL {
+  --c: var(--c-EMAIL);
+}
+.t-PHONE {
+  --c: var(--c-PHONE);
+}
+.t-IPV4 {
+  --c: var(--c-IPV4);
+}
+.t-IPV6 {
+  --c: var(--c-IPV6);
+}
+.t-PAN {
+  --c: var(--c-PAN);
+}
+.t-AADHAAR {
+  --c: var(--c-AADHAAR);
+}
+.t-CREDIT_CARD {
+  --c: var(--c-CREDIT_CARD);
+}
+.t-UPI {
+  --c: var(--c-UPI);
+}
+.t-PROFILE_URL {
+  --c: var(--c-PROFILE_URL);
+}
+.t-GSTIN {
+  --c: var(--c-GSTIN);
+}
+.t-PASSPORT {
+  --c: var(--c-PASSPORT);
+}
+.t-BANK_ACCOUNT {
+  --c: var(--c-BANK_ACCOUNT);
+}
+.t-SECRET {
+  --c: var(--c-SECRET);
+}
+.t-MAC {
+  --c: var(--c-MAC);
+}
+.t-PERSON {
+  --c: var(--c-PERSON);
+}
+.t-DOB {
+  --c: var(--c-DOB);
+}
+.t-ADDRESS {
+  --c: var(--c-ADDRESS);
+}
+.t-CUSTOM {
+  --c: var(--c-CUSTOM);
+}
 
 .export-bar {
   display: flex;
@@ -1248,7 +1291,9 @@ fieldset {
   box-shadow: 0 10px 30px rgb(0 0 0 / 25%);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
 }
 
 .toast.is-visible {

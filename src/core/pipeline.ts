@@ -34,19 +34,44 @@ export interface AnalysisResult {
   chars: number;
   lines: number;
   ms: number;
+  /** True when detection was reused from the previous run (only the redaction step ran). */
+  detectionCached: boolean;
 }
 
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
-export function analyze(req: AnalyzeRequest): AnalysisResult {
-  const t0 = now();
-  const detection: Detection = detect(req.text, {
+/**
+ * One-entry memo of the last detection. Detection (30 regex scans, checksums,
+ * CSV parsing) is the expensive half of a run. Switching the redaction mode or
+ * the type labels only changes the redaction half, so it reuses this result.
+ * Entities are never mutated after detection, so sharing them is safe.
+ */
+let lastDetection: { text: string; key: string; detection: Detection } | null = null;
+
+function detectionKey(req: AnalyzeRequest): string {
+  const { enabled, strict, customTerms, format } = req.settings;
+  return JSON.stringify([enabled, strict, customTerms, format, req.kept]);
+}
+
+function detectCached(req: AnalyzeRequest): { detection: Detection; cached: boolean } {
+  const key = detectionKey(req);
+  if (lastDetection && lastDetection.key === key && lastDetection.text === req.text) {
+    return { detection: lastDetection.detection, cached: true };
+  }
+  const detection = detect(req.text, {
     enabled: req.settings.enabled,
     strict: req.settings.strict,
     customTerms: req.settings.customTerms,
     kept: new Set(req.kept),
     format: req.settings.format,
   });
+  lastDetection = { text: req.text, key, detection };
+  return { detection, cached: false };
+}
+
+export function analyze(req: AnalyzeRequest): AnalysisResult {
+  const t0 = now();
+  const { detection, cached } = detectCached(req);
   const redaction = redact(req.text, detection.entities, { mode: req.settings.mode, typeLabels: req.settings.typeLabels });
 
   const counts: Partial<Record<EntityType, number>> = {};
@@ -82,5 +107,6 @@ export function analyze(req: AnalyzeRequest): AnalysisResult {
     chars: req.text.length,
     lines,
     ms: Math.round((now() - t0) * 10) / 10,
+    detectionCached: cached,
   };
 }

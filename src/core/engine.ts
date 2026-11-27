@@ -115,7 +115,11 @@ function runDetector(det: Detector, text: string, strict: boolean, out: Candidat
       confidence = Math.min(0.99, confidence + 0.05);
       note += ' · context keyword nearby';
     }
-    out.push(meta ? { type: det.type, start, end, confidence, note, meta, source: det.id } : { type: det.type, start, end, confidence, note, source: det.id });
+    out.push(
+      meta
+        ? { type: det.type, start, end, confidence, note, meta, source: det.id }
+        : { type: det.type, start, end, confidence, note, source: det.id },
+    );
   }
 }
 
@@ -157,7 +161,14 @@ function detectHeaderName(text: string, out: Candidate[]): void {
   if (!m || !span || !validatePersonName(m[1] ?? '').ok) return;
   const following = text.slice(span[1], span[1] + 400);
   if (/@|\+?\d[\d -]{8,}\d/.test(following)) {
-    out.push({ type: 'PERSON', start: span[0], end: span[1], confidence: 0.65, note: 'Document header followed by contact details', source: 'header-name' });
+    out.push({
+      type: 'PERSON',
+      start: span[0],
+      end: span[1],
+      confidence: 0.65,
+      note: 'Document header followed by contact details',
+      source: 'header-name',
+    });
   }
 }
 
@@ -166,7 +177,14 @@ function detectCustomTerms(text: string, terms: readonly string[], out: Candidat
   if (cleaned.length === 0) return;
   const re = new RegExp(`(?<![\\p{L}\\p{N}_])(?:${cleaned.map(escapeRegExp).join('|')})(?![\\p{L}\\p{N}_])`, 'giu');
   for (const m of text.matchAll(re)) {
-    out.push({ type: 'CUSTOM', start: m.index, end: m.index + m[0].length, confidence: 1, note: 'On your always-redact list', source: 'custom' });
+    out.push({
+      type: 'CUSTOM',
+      start: m.index,
+      end: m.index + m[0].length,
+      confidence: 1,
+      note: 'On your always-redact list',
+      source: 'custom',
+    });
   }
 }
 
@@ -322,4 +340,3 @@ export function detect(text: string, options: DetectOptions): Detection {
 
   return { entities, rejected, csv };
 }
-

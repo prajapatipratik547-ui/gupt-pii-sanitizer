@@ -53,13 +53,83 @@ const ok = (note: string, meta?: string): CheckResult => (meta ? { ok: true, not
 
 // --- UPI -----------------------------------------------------------------
 const UPI_HANDLES: ReadonlySet<string> = new Set([
-  'ybl', 'ibl', 'axl', 'okaxis', 'okhdfcbank', 'okicici', 'oksbi', 'okbizaxis', 'paytm', 'ptyes', 'ptaxis',
-  'pthdfc', 'ptsbi', 'upi', 'apl', 'yapl', 'rapl', 'axisbank', 'axisb', 'icici', 'hdfcbank', 'sbi', 'kotak',
-  'kkbk', 'idfcbank', 'idfcfirst', 'ikwik', 'freecharge', 'jupiteraxis', 'fbl', 'federal', 'pockets', 'airtel',
-  'jio', 'waaxis', 'wahdfcbank', 'wasbi', 'waicici', 'abfspay', 'yesbank', 'yesbankltd', 'barodampay', 'aubank',
-  'indus', 'dbs', 'hsbc', 'sc', 'citi', 'citigold', 'rbl', 'pnb', 'boi', 'cnrb', 'unionbank', 'uboi', 'mahb',
-  'centralbank', 'cbin', 'idbi', 'ezeepay', 'superyes', 'naviaxis', 'slc', 'sliceaxis', 'yescred', 'goaxb',
-  'tapicici', 'amazonpay', 'postbank', 'equitas', 'kvb', 'karurvysyabank', 'tjsb', 'dlb', 'lvb', 'ubi', 'psb',
+  'ybl',
+  'ibl',
+  'axl',
+  'okaxis',
+  'okhdfcbank',
+  'okicici',
+  'oksbi',
+  'okbizaxis',
+  'paytm',
+  'ptyes',
+  'ptaxis',
+  'pthdfc',
+  'ptsbi',
+  'upi',
+  'apl',
+  'yapl',
+  'rapl',
+  'axisbank',
+  'axisb',
+  'icici',
+  'hdfcbank',
+  'sbi',
+  'kotak',
+  'kkbk',
+  'idfcbank',
+  'idfcfirst',
+  'ikwik',
+  'freecharge',
+  'jupiteraxis',
+  'fbl',
+  'federal',
+  'pockets',
+  'airtel',
+  'jio',
+  'waaxis',
+  'wahdfcbank',
+  'wasbi',
+  'waicici',
+  'abfspay',
+  'yesbank',
+  'yesbankltd',
+  'barodampay',
+  'aubank',
+  'indus',
+  'dbs',
+  'hsbc',
+  'sc',
+  'citi',
+  'citigold',
+  'rbl',
+  'pnb',
+  'boi',
+  'cnrb',
+  'unionbank',
+  'uboi',
+  'mahb',
+  'centralbank',
+  'cbin',
+  'idbi',
+  'ezeepay',
+  'superyes',
+  'naviaxis',
+  'slc',
+  'sliceaxis',
+  'yescred',
+  'goaxb',
+  'tapicici',
+  'amazonpay',
+  'postbank',
+  'equitas',
+  'kvb',
+  'karurvysyabank',
+  'tjsb',
+  'dlb',
+  'lvb',
+  'ubi',
+  'psb',
 ]);
 const UPI_CONTEXT = /\b(?:upi|vpa|gpay|g pay|google pay|phonepe|phone pe|paytm|bhim|pay to|collect request)\b/i;
 
@@ -73,9 +143,38 @@ function validateUpi(value: string, ctx: DetectContext): CheckResult {
 // --- Profile URLs ----------------------------------------------------------
 /** Site sections that are not a person's profile (github.com/features, x.com/home…). */
 const NON_PROFILE_PATHS: ReadonlySet<string> = new Set([
-  'about', 'features', 'pricing', 'login', 'signup', 'join', 'home', 'explore', 'settings', 'orgs', 'topics',
-  'marketplace', 'sponsors', 'search', 'share', 'help', 'privacy', 'terms', 'jobs', 'company', 'pages', 'groups',
-  'events', 'hashtag', 'intent', 'i', 'notifications', 'messages', 'watch', 'apps', 'enterprise', 'security',
+  'about',
+  'features',
+  'pricing',
+  'login',
+  'signup',
+  'join',
+  'home',
+  'explore',
+  'settings',
+  'orgs',
+  'topics',
+  'marketplace',
+  'sponsors',
+  'search',
+  'share',
+  'help',
+  'privacy',
+  'terms',
+  'jobs',
+  'company',
+  'pages',
+  'groups',
+  'events',
+  'hashtag',
+  'intent',
+  'i',
+  'notifications',
+  'messages',
+  'watch',
+  'apps',
+  'enterprise',
+  'security',
 ]);
 
 function profileHandle(url: string): string {
@@ -86,7 +185,17 @@ function validateProfileUrl(value: string): CheckResult {
   const handle = profileHandle(value).toLowerCase();
   if (NON_PROFILE_PATHS.has(handle)) return { ok: false, reason: `"${handle}" is a site page, not a profile` };
   const site = /(linkedin|github|gitlab|twitter|x|instagram|facebook|t|medium)\.(?:com|me)/i.exec(value)?.[1]?.toLowerCase() ?? 'web';
-  const names: Record<string, string> = { t: 'Telegram', x: 'X (Twitter)', twitter: 'X (Twitter)', linkedin: 'LinkedIn', github: 'GitHub', gitlab: 'GitLab', instagram: 'Instagram', facebook: 'Facebook', medium: 'Medium' };
+  const names: Record<string, string> = {
+    t: 'Telegram',
+    x: 'X (Twitter)',
+    twitter: 'X (Twitter)',
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+    gitlab: 'GitLab',
+    instagram: 'Instagram',
+    facebook: 'Facebook',
+    medium: 'Medium',
+  };
   return ok('Personal profile link', names[site] ?? site);
 }
 
@@ -101,7 +210,9 @@ function validateIndianMobile(value: string): CheckResult {
 
 function validateLandline(value: string): CheckResult {
   const national = value.replace(/^\+91/, '').replace(/\D/g, '').replace(/^0/, '');
-  return national.length === 10 ? ok('STD code + subscriber number', 'India landline') : { ok: false, reason: 'Wrong length for an Indian landline' };
+  return national.length === 10
+    ? ok('STD code + subscriber number', 'India landline')
+    : { ok: false, reason: 'Wrong length for an Indian landline' };
 }
 
 function validateIntlPhone(value: string): CheckResult {
@@ -110,7 +221,8 @@ function validateIntlPhone(value: string): CheckResult {
 }
 
 // --- Secrets ---------------------------------------------------------------
-const PLACEHOLDER_SECRET = /^(?:\*+|x+|•+|null|none|nil|undefined|true|false|redacted|\[redacted\]|<redacted>|changeme|example|\$\{[^}]*\}|%[^%]*%)$/i;
+const PLACEHOLDER_SECRET =
+  /^(?:\*+|x+|•+|null|none|nil|undefined|true|false|redacted|\[redacted\]|<redacted>|changeme|example|\$\{[^}]*\}|%[^%]*%)$/i;
 
 function validateSecretValue(value: string): CheckResult {
   if (PLACEHOLDER_SECRET.test(value)) return { ok: false, reason: 'Placeholder, not a real secret' };
@@ -120,13 +232,85 @@ function validateSecretValue(value: string): CheckResult {
 // --- Names -----------------------------------------------------------------
 /** Capitalised words that follow titles/labels but are not names. */
 const NAME_STOPWORDS: ReadonlySet<string> = new Set([
-  'the', 'this', 'that', 'team', 'support', 'customer', 'customers', 'sir', 'madam', 'all', 'everyone', 'there',
-  'friend', 'friends', 'unknown', 'not', 'none', 'na', 'patient', 'doctor', 'admin', 'user', 'users', 'hiring',
-  'manager', 'department', 'hr', 'it', 'billing', 'sales', 'concerned', 'whom', 'applicant', 'candidate', 'client',
-  'service', 'services', 'regards', 'thanks', 'thank', 'hello', 'hi', 'dear', 'valued', 'member', 'members',
-  'guest', 'test', 'sample', 'demo', 'same', 'self', 'yes', 'no', 'today', 'tomorrow', 'monday', 'tuesday',
-  'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'january', 'february', 'march', 'april', 'may',
-  'june', 'july', 'august', 'september', 'october', 'november', 'december', 'india', 'pvt', 'ltd', 'inc',
+  'the',
+  'this',
+  'that',
+  'team',
+  'support',
+  'customer',
+  'customers',
+  'sir',
+  'madam',
+  'all',
+  'everyone',
+  'there',
+  'friend',
+  'friends',
+  'unknown',
+  'not',
+  'none',
+  'na',
+  'patient',
+  'doctor',
+  'admin',
+  'user',
+  'users',
+  'hiring',
+  'manager',
+  'department',
+  'hr',
+  'it',
+  'billing',
+  'sales',
+  'concerned',
+  'whom',
+  'applicant',
+  'candidate',
+  'client',
+  'service',
+  'services',
+  'regards',
+  'thanks',
+  'thank',
+  'hello',
+  'hi',
+  'dear',
+  'valued',
+  'member',
+  'members',
+  'guest',
+  'test',
+  'sample',
+  'demo',
+  'same',
+  'self',
+  'yes',
+  'no',
+  'today',
+  'tomorrow',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+  'india',
+  'pvt',
+  'ltd',
+  'inc',
 ]);
 
 export function validatePersonName(value: string): CheckResult {
@@ -214,8 +398,7 @@ export const DETECTORS: readonly Detector[] = [
     type: 'PAN',
     pattern: /(?<![\w])[A-Za-z]{5}\d{4}[A-Za-z](?!\w)/dg,
     confidence: 0.92,
-    validate: (v) =>
-      v !== v.toUpperCase() && v !== v.toLowerCase() ? { ok: false, reason: 'Mixed case — not a PAN' } : validatePan(v),
+    validate: (v) => (v !== v.toUpperCase() && v !== v.toLowerCase() ? { ok: false, reason: 'Mixed case — not a PAN' } : validatePan(v)),
     boostContext: /\b(?:pan|permanent account|income tax|itr)\b/i,
     reportRejections: true,
   },
@@ -263,7 +446,8 @@ export const DETECTORS: readonly Detector[] = [
   {
     id: 'bank-account',
     type: 'BANK_ACCOUNT',
-    pattern: /\b(?:a\/c|acct|account|bank account|savings account|current account)(?:[ \t]*(?:no\.?|number|num|#))?[ \t]*[:#-]?[ \t]*(\d{9,18})(?!\d)/dgi,
+    pattern:
+      /\b(?:a\/c|acct|account|bank account|savings account|current account)(?:[ \t]*(?:no\.?|number|num|#))?[ \t]*[:#-]?[ \t]*(\d{9,18})(?!\d)/dgi,
     group: 1,
     confidence: 0.85,
     validate: () => ok('Account label + 9–18 digits'),

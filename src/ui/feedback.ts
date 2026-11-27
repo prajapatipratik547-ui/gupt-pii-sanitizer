@@ -23,7 +23,9 @@ export function createActivityLog(list: HTMLElement): (message: string) => void 
   return (message) => {
     const now = new Date();
     list.querySelector('.activity-empty')?.remove();
-    list.prepend(h('li', {}, h('time', { datetime: now.toISOString(), text: now.toLocaleTimeString('en-GB') }), h('span', { text: message })));
+    list.prepend(
+      h('li', {}, h('time', { datetime: now.toISOString(), text: now.toLocaleTimeString('en-GB') }), h('span', { text: message })),
+    );
     while (list.children.length > MAX_LOG_ENTRIES) list.lastElementChild?.remove();
   };
 }

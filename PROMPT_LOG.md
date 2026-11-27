@@ -134,6 +134,21 @@ The AI re-read every source file and attacked the code instead of only re-runnin
 
 ---
 
+## Prompt 6: first evaluation, raising the weakest scores
+
+> The AI evaluation scored 95.22 (Code Quality 89, Security 100, Efficiency 80, Testing 99, Accessibility 100, Problem Statement Alignment 100). We have to reach the top 3.
+
+The AI targeted the two lowest scores.
+
+| Change | Why |
+| --- | --- |
+| **Detection memo** in `core/pipeline.ts` | Switching the redaction mode re-ran all 30 detectors even though only the masking changes. The last detection is now reused when the text and the detection settings are unchanged, and a test checks both reuse and invalidation. |
+| README **Performance design** section | The worker, debounce, stale-result drop, linear-time regexes, bitmap overlap resolution, binary-search line lookup and capped DOM rendering were all in the code but not documented. |
+| **Prettier** with a CI format check | One enforced code style across `src/`, `tests/` and `scripts/`. |
+| **Cloud Run container** (`Dockerfile`, `nginx.conf`) | The form asks for a Cloud Run URL. The container sends the CSP as real HTTP headers, including `frame-ancestors 'none'`, and CI runs all 41 end-to-end checks against it. |
+
+---
+
 ## Next prompts
 
 _Add each further prompt below in the same format: the prompt, what changed, and anything the AI got wrong that you corrected._

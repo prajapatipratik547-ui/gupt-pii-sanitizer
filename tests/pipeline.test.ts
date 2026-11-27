@@ -106,7 +106,12 @@ describe('samples', () => {
 describe('audit report', () => {
   const text = getSample('mixed').text;
   const result = run(text);
-  const report = buildAuditReport(result, { fileName: 'incident.txt', mode: 'full', strict: true, generatedAt: new Date('2026-11-27T10:00:00Z') });
+  const report = buildAuditReport(result, {
+    fileName: 'incident.txt',
+    mode: 'full',
+    strict: true,
+    generatedAt: new Date('2026-11-27T10:00:00Z'),
+  });
   const json = JSON.stringify(report);
 
   it('summarises counts, rejections and settings', () => {
@@ -172,6 +177,21 @@ describe('performance', () => {
     run('1'.repeat(2_000_000));
     run('a.'.repeat(1_000_000));
     expect(performance.now() - t0).toBeLessThan(4000);
+  });
+
+  it('reuses detection when only the redaction mode changes', () => {
+    const text = 'Mail priya.sharma@example.com or call +91 98765 43210.';
+    const full = run(text, { mode: 'full' });
+    expect(full.detectionCached).toBe(false);
+    const pseudo = run(text, { mode: 'pseudonym' });
+    expect(pseudo.detectionCached).toBe(true);
+    expect(pseudo.entities).toBe(full.entities); // same objects: detection did not run again
+    expect(pseudo.output).toContain('USER_01');
+    expect(run(text, { mode: 'partial', typeLabels: true }).detectionCached).toBe(true);
+    // Anything that changes what is detected invalidates the memo.
+    expect(run(text, { mode: 'partial', strict: false }).detectionCached).toBe(false);
+    expect(run(text, { mode: 'partial', strict: false }, [full.entities[0]!.key]).detectionCached).toBe(false);
+    expect(run(`${text} `, { mode: 'partial', strict: false }).detectionCached).toBe(false);
   });
 
   it('reports processing time and line counts', () => {

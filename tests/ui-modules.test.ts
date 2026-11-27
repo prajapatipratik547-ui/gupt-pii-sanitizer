@@ -32,8 +32,7 @@ class FakeWorker {
 
   postMessage(msg: { id: number; request: AnalyzeRequest }): void {
     if (FakeWorker.behaviour === 'silent') return;
-    const data =
-      FakeWorker.behaviour === 'reply' ? { id: msg.id, result: analyze(msg.request) } : { id: msg.id, error: 'boom' };
+    const data = FakeWorker.behaviour === 'reply' ? { id: msg.id, result: analyze(msg.request) } : { id: msg.id, error: 'boom' };
     queueMicrotask(() => this.emit('message', { data }));
   }
 

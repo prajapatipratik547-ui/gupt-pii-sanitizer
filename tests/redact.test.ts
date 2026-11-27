@@ -81,7 +81,9 @@ describe('consistent pseudonymization', () => {
   });
 
   it('treats different spellings of a profile link as one profile', () => {
-    expect(run('https://www.linkedin.com/in/Aarav and linkedin.com/in/aarav', { mode: 'pseudonym' }).output).toBe('PROFILE_01 and PROFILE_01');
+    expect(run('https://www.linkedin.com/in/Aarav and linkedin.com/in/aarav', { mode: 'pseudonym' }).output).toBe(
+      'PROFILE_01 and PROFILE_01',
+    );
   });
 
   it('numbers IPv4 and IPv6 in one IP namespace', () => {

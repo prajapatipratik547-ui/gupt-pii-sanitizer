@@ -10,7 +10,9 @@ export function find(text: string, options: Partial<DetectOptions> = {}) {
 
 /** Values detected for one type, in document order. */
 export function valuesOf(text: string, type: EntityType, options: Partial<DetectOptions> = {}): string[] {
-  return find(text, options).entities.filter((e) => e.type === type).map((e) => e.value);
+  return find(text, options)
+    .entities.filter((e) => e.type === type)
+    .map((e) => e.value);
 }
 
 export function run(text: string, settings: Partial<AnalyzeSettings> = {}, kept: string[] = []) {

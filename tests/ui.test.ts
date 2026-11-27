@@ -98,7 +98,10 @@ describe('loading content', () => {
 
   it('refuses binary and unsupported files with a message', async () => {
     const input = $<HTMLInputElement>('#file-input');
-    Object.defineProperty(input, 'files', { value: [new File([new Uint8Array([137, 80, 78, 71, 0, 0])], 'image.txt')], configurable: true });
+    Object.defineProperty(input, 'files', {
+      value: [new File([new Uint8Array([137, 80, 78, 71, 0, 0])], 'image.txt')],
+      configurable: true,
+    });
     input.dispatchEvent(new Event('change'));
     await settle(30);
     expect($('#toast').textContent).toContain('binary');
@@ -283,7 +286,8 @@ describe('accessibility', () => {
   it('labels every form control', () => {
     for (const control of document.querySelectorAll('input, select, textarea')) {
       const id = control.id;
-      const labelled = control.closest('label') || (id && document.querySelector(`label[for="${id}"]`)) || control.getAttribute('aria-label');
+      const labelled =
+        control.closest('label') || (id && document.querySelector(`label[for="${id}"]`)) || control.getAttribute('aria-label');
       expect(labelled, `#${id || control.getAttribute('name')}`).toBeTruthy();
     }
   });

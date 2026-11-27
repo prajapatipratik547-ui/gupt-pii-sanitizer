@@ -23,16 +23,7 @@ export function luhnCheck(digits: string): boolean {
   return sum % 10 === 0;
 }
 
-export type CardBrand =
-  | 'Visa'
-  | 'Mastercard'
-  | 'American Express'
-  | 'RuPay'
-  | 'Discover'
-  | 'Diners Club'
-  | 'JCB'
-  | 'UnionPay'
-  | 'Maestro';
+export type CardBrand = 'Visa' | 'Mastercard' | 'American Express' | 'RuPay' | 'Discover' | 'Diners Club' | 'JCB' | 'UnionPay' | 'Maestro';
 
 interface BrandRule {
   brand: CardBrand;
@@ -184,10 +175,7 @@ export function validateGstin(raw: string): CheckResult {
 
 export function isValidIPv4(s: string): boolean {
   const parts = s.split('.');
-  return (
-    parts.length === 4 &&
-    parts.every((p) => /^(?:0|[1-9]\d{0,2})$/.test(p) && Number(p) <= 255)
-  );
+  return parts.length === 4 && parts.every((p) => /^(?:0|[1-9]\d{0,2})$/.test(p) && Number(p) <= 255);
 }
 
 export function ipv4Scope(s: string): string {
@@ -239,7 +227,8 @@ export function validateIPv6(raw: string): CheckResult {
   // Require some real content: "::" alone or "a:b::" fragments in prose are not addresses.
   const explicit = raw.split(/:+/).filter(Boolean).length;
   if (explicit < 2 && raw !== '::1') return { ok: false, reason: 'Too few groups to be an address' };
-  const scope = groups[0] === 'fe80' ? 'Link-local' : raw === '::1' ? 'Loopback' : /^f[cd]/.test(groups[0] ?? '') ? 'Private (ULA)' : 'Global';
+  const scope =
+    groups[0] === 'fe80' ? 'Link-local' : raw === '::1' ? 'Loopback' : /^f[cd]/.test(groups[0] ?? '') ? 'Private (ULA)' : 'Global';
   return { ok: true, note: 'Valid IPv6 structure', meta: scope };
 }
 
@@ -253,7 +242,9 @@ export function validateEmail(raw: string): CheckResult {
   const local = raw.slice(0, emailAtIndex(raw));
   if (local.length === 0 || local.length > 64) return { ok: false, reason: 'Local part length invalid' };
   if (local.startsWith('.') || local.endsWith('.') || local.includes('..')) return { ok: false, reason: 'Misplaced dots in local part' };
-  return raw.includes('@') ? { ok: true, note: 'Well-formed address' } : { ok: true, note: 'Well-formed address', meta: 'URL-encoded (%40)' };
+  return raw.includes('@')
+    ? { ok: true, note: 'Well-formed address' }
+    : { ok: true, note: 'Well-formed address', meta: 'URL-encoded (%40)' };
 }
 
 export function digitCount(s: string): number {

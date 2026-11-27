@@ -26,6 +26,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run format:check
       - run: npm run coverage
       - run: npm run build
       - name: Verify the CSP made it into the build

@@ -67,9 +67,7 @@ export function parseSettings(raw: string | null): Settings {
     enabled: Array.isArray(d.enabled)
       ? migrateEnabled(d.enabled.filter(isEntityType), Array.isArray(d.knownTypes) ? d.knownTypes.filter(isEntityType) : LEGACY_TYPES)
       : [...DEFAULT_SETTINGS.enabled],
-    customTerms: Array.isArray(d.customTerms)
-      ? d.customTerms.filter((t): t is string => typeof t === 'string').slice(0, 200)
-      : [],
+    customTerms: Array.isArray(d.customTerms) ? d.customTerms.filter((t): t is string => typeof t === 'string').slice(0, 200) : [],
     syncScroll: bool(d.syncScroll, DEFAULT_SETTINGS.syncScroll),
     showTags: bool(d.showTags, DEFAULT_SETTINGS.showTags),
     theme: THEMES.includes(d.theme as Theme) ? (d.theme as Theme) : DEFAULT_SETTINGS.theme,

@@ -1,7 +1,7 @@
 # Gupt (गुप्त): private PII sanitizer
 
 [![CI & Pages](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml/badge.svg)](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-229%20unit%20%2B%2041%20e2e-brightgreen)
+![Tests](https://img.shields.io/badge/tests-230%20unit%20%2B%2041%20e2e-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-97%25%20lines-brightgreen)
 ![Lighthouse](https://img.shields.io/badge/Lighthouse-100%20·%20100%20·%20100-brightgreen)
 ![Runtime dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)
@@ -124,9 +124,9 @@ See [`SECURITY.md`](SECURITY.md) for the full policy and how to verify each guar
 ## Testing
 
 ```bash
-npm test            # 229 unit + integration tests (Vitest, node + jsdom, axe-core, ReDoS guard)
+npm test            # 230 unit + integration tests (Vitest, node + jsdom, axe-core, ReDoS guard)
 npm run coverage    # whole app: ~97% lines, ~95% statements, ~89% branches (thresholds enforced)
-npm run check       # typecheck + lint + test + build
+npm run check       # typecheck + lint + format check + test + build
 npm run e2e         # 41 end-to-end checks in real headless Chrome (needs `npm run preview -- --port 4317`)
 ```
 
@@ -157,6 +157,22 @@ The **end-to-end suite** ([`scripts/e2e.mjs`](scripts/e2e.mjs)) drives the produ
 | 2 MB log | ~130 ms |
 
 Lighthouse SEO scores 91 because its in-page `robots.txt` fetch is blocked by our own `connect-src 'none'`. That is the privacy guarantee doing its job.
+
+## Performance design
+
+Gupt stays responsive on multi-megabyte logs because the expensive work is done once, off the main thread, in linear time.
+
+| Technique | Where | Effect |
+| --- | --- | --- |
+| Web Worker | [`worker.ts`](src/worker.ts), [`ui/analyzer.ts`](src/ui/analyzer.ts) | Detection never blocks typing or scrolling. The engine is only loaded on the main thread if the worker fails. |
+| Detection memo | [`core/pipeline.ts`](src/core/pipeline.ts) | Switching between Full, Partial and Pseudonym mode reuses the last detection and only re-runs redaction. The UI shows "detection reused". |
+| Debounce + stale-result drop | [`ui/app.ts`](src/ui/app.ts) | Typing triggers one run per 160 ms pause, and a result that a newer request has superseded is discarded instead of rendered. |
+| Linear-time regexes | [`core/detectors.ts`](src/core/detectors.ts) | Detectors are compiled once at load and anchored so they cannot backtrack catastrophically. [`tests/redos.test.ts`](tests/redos.test.ts) runs all 30 against 22 adversarial 100 KB inputs. |
+| Bitmap overlap resolution | [`core/engine.ts`](src/core/engine.ts) | Conflicting matches are resolved with a `Uint8Array` occupancy map in O(n + matched characters), not by comparing every pair. |
+| Binary-search line lookup | [`core/engine.ts`](src/core/engine.ts) | Line and column for each finding cost O(log lines). |
+| Single-pass counting | [`core/pipeline.ts`](src/core/pipeline.ts), [`ui/app.ts`](src/ui/app.ts) | Per-type counts, unique values and line counts are each computed in one pass. |
+| One DOM swap per render | [`ui/render.ts`](src/ui/render.ts) | Both diff panes are built in a `DocumentFragment` and swapped in at once. The preview is capped at 200,000 characters and the table at 1,000 rows. Downloads and reports always contain everything. |
+| Small, static bundle | [`vite.config.ts`](vite.config.ts), [`nginx.conf`](nginx.conf) | About 37 KB of gzipped JavaScript and no runtime dependencies. Hashed assets are cached for a year; the page itself is always revalidated. |
 
 ## Run locally
 

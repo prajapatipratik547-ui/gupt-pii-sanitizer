@@ -60,12 +60,9 @@ describe('phones', () => {
     expect(valuesOf(`Call ${text} today`, 'PHONE')).toEqual([expected]);
   });
 
-  it.each(['1234567890', '5876543210', 'ts=1730535253', '2026-11-02', '98765432101234', '9999999999'])(
-    'ignores %s',
-    (text) => {
-      expect(valuesOf(`value ${text} end`, 'PHONE')).toEqual([]);
-    },
-  );
+  it.each(['1234567890', '5876543210', 'ts=1730535253', '2026-11-02', '98765432101234', '9999999999'])('ignores %s', (text) => {
+    expect(valuesOf(`value ${text} end`, 'PHONE')).toEqual([]);
+  });
 
   it('does not cut a phone number out of an Aadhaar-shaped digit group', () => {
     expect(valuesOf('id 9876 5432 1098 x', 'PHONE')).toEqual([]);
