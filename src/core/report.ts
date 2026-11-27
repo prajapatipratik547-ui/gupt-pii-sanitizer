@@ -3,7 +3,7 @@ import type { AnalysisResult } from './pipeline';
 import { MODE_LABELS, type PseudonymEntry, type RedactionMode } from './redact';
 
 export const APP_NAME = 'Gupt';
-export const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.0';
 
 /** "customers.csv" -> "customers.sanitized.csv"; no name -> "sanitized.txt". */
 export function sanitizedFileName(original: string | null): string {

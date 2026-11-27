@@ -16,9 +16,20 @@ describe('settings parsing', () => {
     );
     expect(s.mode).toBe('pseudonym');
     expect(s.strict).toBe(false);
-    expect(s.enabled).toEqual(['EMAIL']);
+    expect(s.enabled).toEqual(['EMAIL', 'PROFILE_URL']); // legacy save: the newer type is switched on
     expect(s.customTerms).toEqual(['Falcon']);
     expect(s.theme).toBe('system');
+  });
+
+  it('switches on entity types added after the settings were saved', () => {
+    // Saved by a version that predates PROFILE_URL, with EMAIL turned off by the user.
+    const legacy = parseSettings(JSON.stringify({ enabled: ['PHONE', 'PAN'] }));
+    expect(legacy.enabled).toContain('PROFILE_URL');
+    expect(legacy.enabled).not.toContain('EMAIL');
+    // Saved by this version: a type the user turned off stays off.
+    const current = parseSettings(JSON.stringify({ enabled: ['PHONE'], knownTypes: ['PHONE', 'PROFILE_URL', 'EMAIL'] }));
+    expect(current.enabled).not.toContain('PROFILE_URL');
+    expect(current.enabled).toContain('GSTIN'); // not in knownTypes, so it is new to this user
   });
 
   it('rejects an unknown mode', () => {

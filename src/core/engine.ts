@@ -1,7 +1,7 @@
 import { headerType, parseCsv, sniffDelimiter } from './csv';
 import { type Detector, DETECTORS, contextBefore, validatePersonName } from './detectors';
 import { ENTITY_INFO, type EntityType } from './entities';
-import { entityKey, normalizeValue } from './normalize';
+import { entityKey } from './normalize';
 
 export type InputFormat = 'auto' | 'text' | 'csv';
 
@@ -323,4 +323,3 @@ export function detect(text: string, options: DetectOptions): Detection {
   return { entities, rejected, csv };
 }
 
-export { normalizeValue };

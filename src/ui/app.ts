@@ -140,7 +140,8 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
   const analyzeSoon = debounce(() => void analyzeNow(), TYPING_DEBOUNCE_MS);
 
   // ----------------------------------------------------------------- render
-  const coreBadges = renderTypeToggles(el.coreList, CORE_TYPES.filter((t) => t !== 'CUSTOM'), new Set(state.settings.enabled));
+  // CUSTOM has no checkbox: it switches on whenever the always-redact list has terms.
+  const coreBadges = renderTypeToggles(el.coreList, CORE_TYPES, new Set(state.settings.enabled));
   const extBadges = renderTypeToggles(el.extendedList, EXTENDED_TYPES.filter((t) => t !== 'CUSTOM'), new Set(state.settings.enabled));
 
   function render(): void {
@@ -187,13 +188,12 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
   }
 
   function renderFilterOptions(r: AnalysisResult): void {
-    const present = [...new Set(r.entities.map((e) => e.type))];
-    if (state.filter && !present.includes(state.filter)) state.filter = '';
+    const perType = new Map<EntityType, number>();
+    for (const e of r.entities) perType.set(e.type, (perType.get(e.type) ?? 0) + 1);
+    if (state.filter && !perType.has(state.filter)) state.filter = '';
     el.findingsFilter.replaceChildren(
       h('option', { value: '', text: `All types (${r.entities.length})` }),
-      ...present.map((t) =>
-        h('option', { value: t, selected: t === state.filter, text: `${ENTITY_INFO[t].label} (${r.entities.filter((e) => e.type === t).length})` }),
-      ),
+      ...[...perType].map(([t, n]) => h('option', { value: t, selected: t === state.filter, text: `${ENTITY_INFO[t].label} (${n})` })),
     );
   }
 
@@ -258,6 +258,8 @@ export function startApp(options: { useWorker?: boolean } = {}): AppHandle {
 
   el.input.addEventListener('input', () => {
     state.text = el.input.value;
+    // Emptying the box starts a new document: drop the old file name (and its CSV format hint).
+    if (state.text === '') state.fileName = null;
     analyzeSoon();
   });
 

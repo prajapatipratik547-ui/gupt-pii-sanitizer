@@ -41,6 +41,9 @@ export function maskDigitsKeepLast(value: string, keep: number): string {
   return value.replace(/\d/g, (d) => (++seen > total - keep ? d : 'X'));
 }
 
+/** Public, non-secret type prefixes of well-known credential formats. */
+const SECRET_PREFIX = /^(?:AKIA|ASIA|gh[pousr]_|(?:sk|rk|pk)_(?:live|test)_|AIza|eyJ)/;
+
 const maskAlnum = (s: string): string => s.replace(/[\p{L}\p{N}]/gu, 'X');
 
 function maskLocalPart(value: string): string {
@@ -74,6 +77,7 @@ export function partialMask(type: EntityType, value: string): string {
       return `${value.slice(0, 2)}XXXXXXXXXX${value.slice(12)}`;
     case 'PASSPORT': {
       const compact = value.replace(/\s/g, '');
+      if (compact.length < 4) return 'X'.repeat(compact.length);
       return `${compact.charAt(0)}${'X'.repeat(compact.length - 3)}${compact.slice(-2)}`;
     }
     case 'IPV4': {
@@ -89,8 +93,12 @@ export function partialMask(type: EntityType, value: string): string {
       let hex = 0;
       return value.replace(/[0-9a-f]/gi, (c) => (++hex > 6 ? 'X' : c));
     }
-    case 'SECRET':
-      return value.length <= 8 ? '********' : `${value.slice(0, 4)}${'*'.repeat(12)}`;
+    case 'SECRET': {
+      // Only a provider's public type prefix (AKIA, ghp_, sk_live_, eyJ…) is shown, never
+      // characters of the secret itself — a password keeps none of its letters.
+      const prefix = SECRET_PREFIX.exec(value)?.[0];
+      return prefix ? `${prefix}${'*'.repeat(12)}` : '********';
+    }
     case 'PERSON':
       return value
         .split(/(\s+)/)

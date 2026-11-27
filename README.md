@@ -1,7 +1,7 @@
 # Gupt (गुप्त): private PII sanitizer
 
 [![CI & Pages](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml/badge.svg)](https://github.com/prajapatipratik547-ui/gupt-pii-sanitizer/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-195%20unit%20%2B%2039%20e2e-brightgreen)
+![Tests](https://img.shields.io/badge/tests-229%20unit%20%2B%2041%20e2e-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-97%25%20lines-brightgreen)
 ![Lighthouse](https://img.shields.io/badge/Lighthouse-100%20·%20100%20·%20100-brightgreen)
 ![Runtime dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)
@@ -102,12 +102,14 @@ See [`SECURITY.md`](SECURITY.md) for the full policy and how to verify each guar
 | Threat | Mitigation |
 | --- | --- |
 | Data leaves the device | No backend. CSP `connect-src 'none'` blocks fetch, XHR, WebSocket and beacons. `form-action 'none'`. Live request counter. |
-| XSS from pasted content | User text only ever reaches the DOM through text nodes and `textContent`. ESLint bans `innerHTML`, `outerHTML` and `insertAdjacentHTML`. CSP allows no inline scripts. |
+| XSS from pasted content | User text only ever reaches the DOM through text nodes and `textContent`. ESLint bans `innerHTML`, `outerHTML` and `insertAdjacentHTML`. CSP allows no inline scripts and enforces **Trusted Types**, so the browser itself rejects HTML or script injection. |
+| Network code in the bundle | Vite's preload polyfill (the only `fetch` call) is disabled. An end-to-end test confirms the shipped JavaScript contains no `fetch`, XHR or beacon. |
+| Clickjacking | Static hosting can't send `frame-ancestors`, so the app refuses to start inside another site's frame. |
 | Supply-chain compromise | Zero runtime dependencies. Dev tooling is not shipped. |
 | Data left behind | Nothing is written to `localStorage` except preferences. Blob URLs are revoked right after download. |
 | Audit report leaks PII | The report is built from types and positions only. A unit test asserts that no detected value appears in it. |
 | Re-identification key mishandled | Only offered in pseudonym mode, needs two clicks to download, and carries an in-file warning. |
-| ReDoS | Bounded quantifiers and boundary-anchored patterns, with performance tests on pathological input. |
+| ReDoS | Boundary-anchored patterns with bounded repetition. A regression test runs **all 30 detectors against 22 adversarial 100 KB inputs**. It caught (and now prevents) a quadratic credential pattern. |
 | Main-thread freeze on big files | Analysis runs in a Web Worker, with an automatic main-thread fallback. The preview is capped at 200k characters while the export always covers the whole file. |
 
 ## Accessibility
@@ -122,17 +124,17 @@ See [`SECURITY.md`](SECURITY.md) for the full policy and how to verify each guar
 ## Testing
 
 ```bash
-npm test            # 195 unit + integration tests (Vitest, node + jsdom, axe-core)
+npm test            # 229 unit + integration tests (Vitest, node + jsdom, axe-core, ReDoS guard)
 npm run coverage    # whole app: ~97% lines, ~95% statements, ~89% branches (thresholds enforced)
 npm run check       # typecheck + lint + test + build
-npm run e2e         # 39 end-to-end checks in real headless Chrome (needs `npm run preview -- --port 4317`)
+npm run e2e         # 41 end-to-end checks in real headless Chrome (needs `npm run preview -- --port 4317`)
 ```
 
 The UI tests load the real `index.html` in jsdom and click through each flow: sample loading, typing, upload, binary-file refusal, every mode, keep and unkeep, filters, custom terms, all four downloads, clipboard fallback, restore and theme. Module tests cover the Web Worker client, including its crash fallback to the main thread, plus scroll sync and the privacy monitor.
 
 The **end-to-end suite** ([`scripts/e2e.mjs`](scripts/e2e.mjs)) drives the production build in headless Chrome over the DevTools protocol, with no test framework or extra dependency. CI runs it on every push. It checks:
 
-- the CSP is present and there are zero requests to other origins;
+- the CSP is present, **Trusted Types is enforced**, and there are zero requests to other origins;
 - real file downloads contain no original values;
 - the audit report is PII-free;
 - an XSS payload is shown as text and never executed;

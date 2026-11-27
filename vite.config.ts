@@ -20,6 +20,10 @@ export const CSP = [
   "manifest-src 'self'",
   "base-uri 'none'",
   "form-action 'none'",
+  // Trusted Types: the browser itself rejects HTML/script injection sinks (innerHTML, script.src…).
+  // The single allowed policy only ever vouches for Gupt's own worker URL.
+  "require-trusted-types-for 'script'",
+  'trusted-types gupt-worker',
 ].join('; ');
 
 function cspPlugin(): Plugin {
@@ -32,6 +36,24 @@ function cspPlugin(): Plugin {
         `<meta charset="utf-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`,
       );
     },
+    // GitHub Pages can only use the <meta> CSP above. Hosts that honour a `_headers` file
+    // (Netlify, Cloudflare Pages) get the same policy as real HTTP headers, plus the
+    // directives a <meta> tag cannot express.
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: '_headers',
+        source: [
+          '/*',
+          `  Content-Security-Policy: ${CSP}; frame-ancestors 'none'`,
+          '  X-Content-Type-Options: nosniff',
+          '  Referrer-Policy: no-referrer',
+          '  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+          '  Cross-Origin-Opener-Policy: same-origin',
+          '',
+        ].join('\n'),
+      });
+    },
   };
 }
 
@@ -40,6 +62,9 @@ export default defineConfig({
   plugins: [cspPlugin()],
   build: {
     target: 'es2022',
+    // The preload polyfill contains a fetch() call. Every browser that runs ES2022 supports
+    // <link rel="modulepreload"> natively, so ship no network code at all.
+    modulePreload: { polyfill: false },
     sourcemap: false,
     // Keep the worker as a separate same-origin file so `worker-src 'self'` covers it.
     assetsInlineLimit: 0,

@@ -86,6 +86,10 @@ const files = () => readdirSync(dl).filter((f) => !f.endsWith('.crdownload'));
 
 // 1. Boot
 check('CSP meta present with connect-src none', await ev(`document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content.includes("connect-src 'none'")`));
+check('Trusted Types enforced (innerHTML throws)', await ev(`(() => { try { document.createElement('div').innerHTML = '<b>x</b>'; return false; } catch (e) { return e instanceof TypeError; } })()`));
+// The browser logs the blocked assignment above; that message is expected, not an app error.
+await sleep(100);
+errors.splice(0, errors.length, ...errors.filter((e) => !e.includes('TrustedHTML')));
 check('page title', (await ev('document.title')) === 'Gupt · Private PII Sanitizer');
 check('privacy pill shows 0 requests', (await stat('#net-count')) === '0 network requests');
 check('starts with downloads disabled', await ev(`document.querySelector('#download').disabled`));
@@ -178,7 +182,29 @@ await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab',
 await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
 check('first Tab reaches the skip link', (await ev(`document.activeElement.className`)) === 'skip-link');
 
-// 12. No outbound requests, no errors
+// 12. Shipped JavaScript contains no network APIs. Crawl from index.html through every chunk it
+//     references (chunks refer to each other by relative name, e.g. `worker-abc123.js`).
+const CHUNK_REF = /["'`](?:\.\/)?((?:assets\/)?[\w.-]+-[\w-]{6,}\.js)["'`]/g;
+const seenAssets = new Set();
+const queue = [...(await (await fetch(url)).text()).matchAll(CHUNK_REF)].map((m) => new URL(m[1], url).href);
+const networkCalls = [];
+while (queue.length) {
+  const assetUrl = queue.pop();
+  if (seenAssets.has(assetUrl)) continue;
+  seenAssets.add(assetUrl);
+  const code = await (await fetch(assetUrl)).text();
+  for (const m of code.matchAll(CHUNK_REF)) queue.push(new URL(m[1], assetUrl).href);
+  for (const api of ['fetch(', 'XMLHttpRequest', 'sendBeacon', 'WebSocket(', 'EventSource(']) {
+    if (code.includes(api)) networkCalls.push(`${assetUrl.split('/').pop()}: ${api}`);
+  }
+}
+check(
+  'shipped JS has no network APIs',
+  seenAssets.size >= 3 && networkCalls.length === 0,
+  `${seenAssets.size} files scanned${networkCalls.length ? `; found ${networkCalls.join(', ')}` : ''}`,
+);
+
+// 13. No outbound requests, no errors
 const external = requests.filter((u) => !u.startsWith(new URL(url).origin) && !u.startsWith('data:') && !u.startsWith('blob:'));
 check('no requests to any other origin', external.length === 0, external.join(', '));
 check('privacy pill still 0 requests', (await stat('#net-count')) === '0 network requests');

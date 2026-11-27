@@ -1344,3 +1344,12 @@ fieldset {
     overflow: visible;
   }
 }
+
+/* Shown instead of the app when it is loaded inside a frame (clickjacking guard). */
+.framed-notice {
+  max-width: 520px;
+  margin: 15vh auto;
+  padding: 24px;
+  font-size: 16px;
+  text-align: center;
+}

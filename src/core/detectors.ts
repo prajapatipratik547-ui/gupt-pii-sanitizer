@@ -43,7 +43,7 @@ export interface Detector {
   note?: string;
 }
 
-export const CONTEXT_WINDOW = 48;
+const CONTEXT_WINDOW = 48;
 
 export function contextBefore(text: string, start: number, size = CONTEXT_WINDOW): string {
   return text.slice(Math.max(0, start - size), start);
@@ -52,7 +52,7 @@ export function contextBefore(text: string, start: number, size = CONTEXT_WINDOW
 const ok = (note: string, meta?: string): CheckResult => (meta ? { ok: true, note, meta } : { ok: true, note });
 
 // --- UPI -----------------------------------------------------------------
-export const UPI_HANDLES: ReadonlySet<string> = new Set([
+const UPI_HANDLES: ReadonlySet<string> = new Set([
   'ybl', 'ibl', 'axl', 'okaxis', 'okhdfcbank', 'okicici', 'oksbi', 'okbizaxis', 'paytm', 'ptyes', 'ptaxis',
   'pthdfc', 'ptsbi', 'upi', 'apl', 'yapl', 'rapl', 'axisbank', 'axisb', 'icici', 'hdfcbank', 'sbi', 'kotak',
   'kkbk', 'idfcbank', 'idfcfirst', 'ikwik', 'freecharge', 'jupiteraxis', 'fbl', 'federal', 'pockets', 'airtel',
@@ -78,7 +78,7 @@ const NON_PROFILE_PATHS: ReadonlySet<string> = new Set([
   'events', 'hashtag', 'intent', 'i', 'notifications', 'messages', 'watch', 'apps', 'enterprise', 'security',
 ]);
 
-export function profileHandle(url: string): string {
+function profileHandle(url: string): string {
   return url.slice(url.lastIndexOf('/') + 1).replace(/^@/, '');
 }
 
@@ -119,7 +119,7 @@ function validateSecretValue(value: string): CheckResult {
 
 // --- Names -----------------------------------------------------------------
 /** Capitalised words that follow titles/labels but are not names. */
-export const NAME_STOPWORDS: ReadonlySet<string> = new Set([
+const NAME_STOPWORDS: ReadonlySet<string> = new Set([
   'the', 'this', 'that', 'team', 'support', 'customer', 'customers', 'sir', 'madam', 'all', 'everyone', 'there',
   'friend', 'friends', 'unknown', 'not', 'none', 'na', 'patient', 'doctor', 'admin', 'user', 'users', 'hiring',
   'manager', 'department', 'hr', 'it', 'billing', 'sales', 'concerned', 'whom', 'applicant', 'candidate', 'client',
@@ -180,7 +180,9 @@ export const DETECTORS: readonly Detector[] = [
   {
     id: 'phone-intl',
     type: 'PHONE',
-    pattern: /(?<![\w+])\+(?!91)[1-9]\d{0,3}(?:[ .-]?\(?\d{1,5}\)?){1,6}(?![\d\w])/dg,
+    // Each repetition consumes exactly one digit (with an optional separator or bracket), so there
+    // is only one way to match a given run of digits — no exponential backtracking. 8–15 digits = E.164.
+    pattern: /(?<![\w+])\+(?!91)[1-9](?:[ .-]?\(?\d\)?){7,14}(?![\d\w])/dg,
     confidence: 0.85,
     validate: validateIntlPhone,
   },
@@ -313,7 +315,9 @@ export const DETECTORS: readonly Detector[] = [
     id: 'secret-assignment',
     type: 'SECRET',
     pattern:
-      /(?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-])*?(?:password|passwd|pwd|pass|secret|client[_-]?secret|api[_-]?key|apikey|access[_-]?token|auth[_-]?token|refresh[_-]?token|private[_-]?key|session[_-]?id|token)\b["']?[ \t]*[:=][ \t]*["']?([^\s"',;&]{4,})/dgi,
+      // Starts only at the beginning of an identifier and allows a bounded prefix (db_, x-api-),
+      // which keeps the scan linear even on a long `a_a_a_a…` chain.
+      /(?<![A-Za-z0-9_-])(?:[A-Za-z0-9]{1,32}[_-]){0,6}?(?:password|passwd|pwd|pass|secret|client[_-]?secret|api[_-]?key|apikey|access[_-]?token|auth[_-]?token|refresh[_-]?token|private[_-]?key|session[_-]?id|token)\b["']?[ \t]*[:=][ \t]*["']?([^\s"',;&]{4,})/dgi,
     group: 1,
     confidence: 0.9,
     validate: validateSecretValue,

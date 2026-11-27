@@ -1,7 +1,35 @@
 import type { AnalysisResult, AnalyzeRequest } from '../core/pipeline';
+import workerUrl from '../worker.ts?worker&url';
 
 type Pending = { resolve: (r: AnalysisResult) => void; reject: (e: Error) => void; request: AnalyzeRequest };
 type WorkerReply = { id: number; result?: AnalysisResult; error?: string };
+
+/** The slice of the Trusted Types API we use (not yet in every TypeScript DOM lib). */
+interface TrustedTypesLike {
+  createPolicy(name: string, rules: { createScriptURL: (url: string) => string }): { createScriptURL(url: string): unknown };
+}
+
+let workerPolicy: ReturnType<TrustedTypesLike['createPolicy']> | null | undefined;
+
+/**
+ * The CSP enforces Trusted Types, so `new Worker()` only accepts a URL vouched
+ * for by the `gupt-worker` policy — and that policy refuses anything except
+ * Gupt's own bundled worker file.
+ */
+function trustedWorkerUrl(): string {
+  if (workerPolicy === undefined) {
+    const tt = (globalThis as { trustedTypes?: TrustedTypesLike }).trustedTypes;
+    workerPolicy = tt
+      ? tt.createPolicy('gupt-worker', {
+          createScriptURL: (url) => {
+            if (url !== workerUrl) throw new TypeError('Refusing to start an unexpected worker script');
+            return url;
+          },
+        })
+      : null;
+  }
+  return (workerPolicy ? workerPolicy.createScriptURL(workerUrl) : workerUrl) as string;
+}
 
 /**
  * Runs analysis in a Web Worker, falling back to the main thread when workers
@@ -16,12 +44,14 @@ export class Analyzer {
   constructor(useWorker = typeof Worker !== 'undefined') {
     if (!useWorker) return;
     try {
-      this.worker = new Worker(new URL('../worker.ts', import.meta.url), { type: 'module' });
+      this.worker = new Worker(trustedWorkerUrl(), { type: 'module' });
       this.worker.addEventListener('message', (e: MessageEvent<WorkerReply>) => this.onReply(e.data));
-      this.worker.addEventListener('error', (e) => {
+      const fail = (e: Event): void => {
         e.preventDefault();
         this.fallBackToMainThread();
-      });
+      };
+      this.worker.addEventListener('error', fail);
+      this.worker.addEventListener('messageerror', fail);
     } catch {
       this.worker = null;
     }

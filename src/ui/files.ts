@@ -2,8 +2,8 @@
  * Local file handling. Files are read with the File API straight into memory;
  * nothing is uploaded. Binary files are refused rather than mangled.
  */
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
-export const ACCEPTED_EXTENSIONS = ['.txt', '.csv', '.log', '.tsv', '.md'] as const;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const ACCEPTED_EXTENSIONS = ['.txt', '.csv', '.log', '.tsv', '.md'] as const;
 
 export type FileReadResult = { ok: true; text: string; name: string; bytes: number } | { ok: false; error: string };
 

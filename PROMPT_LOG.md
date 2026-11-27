@@ -108,6 +108,32 @@ The config was removed, the 5 PRs were closed and their branches deleted, and th
 
 ---
 
+## Prompt 5: code review before submission
+
+> Everything looks good on GitHub. The submission will be evaluated on the code, so check that the whole codebase is perfect. We don't have to miss anything.
+
+The AI re-read every source file and attacked the code instead of only re-running the existing tests.
+
+| Finding | Severity | Fix |
+| --- | --- | --- |
+| **ReDoS in `secret-assignment`.** On an `a_a_a_a…` chain the pattern rescanned from every `a`: 229 ms at 20 KB, about 23 s at 200 KB (quadratic). | High | It now starts only at the beginning of an identifier and allows a bounded prefix of at most 6 `word_` parts. Worst case at 200 KB is about 3 ms. |
+| `phone-intl` used nested optional groups, so one run of digits could be split many ways when backtracking. | Medium | Each repetition now consumes exactly one digit, which leaves only one way to match. |
+| No guard against future regex regressions. | Medium | New `tests/redos.test.ts` runs all 30 detectors against 22 adversarial 100 KB inputs with a 250 ms budget. |
+| **Partial mask leaked the first 4 characters of passwords** (`S3cr…`). | High | Only a provider's public type prefix is shown (`AKIA`, `ghp_`, `sk_live_`, `eyJ`…). Anything else becomes `********`. |
+| The passport mask could throw `RangeError` on a value shorter than 3 characters. | Low | Guarded, with a test. |
+| The shipped bundle contained a `fetch(` call, from Vite's module-preload polyfill. | Medium (it contradicted the "no network code" claim) | Polyfill disabled. An end-to-end test confirms 0 `fetch` calls in the built JS. |
+| Defence in depth against XSS. | Hardening | The CSP now enforces **Trusted Types**. The single policy only accepts Gupt's own worker URL, and an end-to-end test confirms `innerHTML` throws. |
+| Clickjacking: static hosting can't send `frame-ancestors`. | Hardening | The app refuses to start inside another site's frame. Verified by framing it from a second origin. |
+| Worker `messageerror` was not handled. | Low | It now triggers the main-thread fallback, like `error`. |
+| **Returning users would have the new Profile URL type switched off**, because saved settings list only the types that existed when they were saved. | Medium | Settings now record `knownTypes`. Types added later start switched on, and a user's own choices are kept. Covered by tests. |
+| Emptying the text box kept the old file name, and with it the CSV format hint. | Low | Typing into an empty box now starts a fresh document. |
+| Findings filter counted each type by re-scanning all entities (types × entities). | Low | Counts are computed in one pass. |
+| Unused re-export in `engine.ts`; file-internal constants exported. | Tidy-up | Removed and made private. |
+
+**Verification:** 229 tests, 41/41 end-to-end checks, Lighthouse 100 / 100 / 100. Typecheck and lint have 0 errors and 0 warnings, and `npm audit` reports 0 vulnerabilities.
+
+---
+
 ## Next prompts
 
 _Add each further prompt below in the same format: the prompt, what changed, and anything the AI got wrong that you corrected._

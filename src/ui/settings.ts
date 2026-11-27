@@ -31,6 +31,21 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
 };
 
+/**
+ * Types that existed before `knownTypes` was recorded (everything up to the
+ * Profile URL type). Lets settings saved by older versions be migrated.
+ */
+const LEGACY_TYPES: readonly EntityType[] = ENTITY_TYPES.filter((t) => t !== 'PROFILE_URL');
+
+/**
+ * Saved `enabled` lists only mention the types that existed at the time. A type
+ * added later must start switched ON, not silently stay off for returning users.
+ */
+function migrateEnabled(stored: readonly EntityType[], known: readonly EntityType[]): EntityType[] {
+  const added = ENTITY_TYPES.filter((t) => !known.includes(t));
+  return [...new Set([...stored, ...added])];
+}
+
 const MODES: readonly RedactionMode[] = ['full', 'partial', 'pseudonym'];
 const THEMES: readonly Theme[] = ['system', 'light', 'dark'];
 
@@ -49,7 +64,9 @@ export function parseSettings(raw: string | null): Settings {
     mode: MODES.includes(d.mode as RedactionMode) ? (d.mode as RedactionMode) : DEFAULT_SETTINGS.mode,
     typeLabels: bool(d.typeLabels, DEFAULT_SETTINGS.typeLabels),
     strict: bool(d.strict, DEFAULT_SETTINGS.strict),
-    enabled: Array.isArray(d.enabled) ? d.enabled.filter(isEntityType) : [...DEFAULT_SETTINGS.enabled],
+    enabled: Array.isArray(d.enabled)
+      ? migrateEnabled(d.enabled.filter(isEntityType), Array.isArray(d.knownTypes) ? d.knownTypes.filter(isEntityType) : LEGACY_TYPES)
+      : [...DEFAULT_SETTINGS.enabled],
     customTerms: Array.isArray(d.customTerms)
       ? d.customTerms.filter((t): t is string => typeof t === 'string').slice(0, 200)
       : [],
@@ -69,7 +86,7 @@ export function loadSettings(): Settings {
 
 export function saveSettings(settings: Settings): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...settings, knownTypes: ENTITY_TYPES }));
   } catch {
     // Storage unavailable: preferences simply won't persist.
   }
